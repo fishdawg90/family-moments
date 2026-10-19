@@ -24,11 +24,18 @@ test('capture stays at the top and Save stays at the visible bottom while suppor
     const button = (await save.boundingBox())!;
     expect(size.height - button.y - button.height).toBeLessThan(45);
     const top = (await text.boundingBox())!.y;
+    const photo = page.getByRole('button', { name: 'Photo', exact: true });
+    const photoTop = (await photo.boundingBox())!.y;
+    await expect(photo).toBeInViewport();
     await middle.evaluate((el) => {
       el.scrollTop = el.scrollHeight;
     });
     await expect(page.getByText('Your little moments will gather here.')).toBeInViewport();
     expect((await text.boundingBox())!.y).toBeCloseTo(top, 0);
+    expect((await photo.boundingBox())!.y).toBeCloseTo(photoTop, 0);
+    await expect(page.getByRole('button', { name: 'Video', exact: true })).toBeInViewport();
+    await expect(page.getByRole('button', { name: 'Audio', exact: true })).toBeInViewport();
+    await expect(page.getByRole('button', { name: 'Files', exact: true })).toBeInViewport();
     expect((await save.boundingBox())!.y).toBeCloseTo(button.y, 0);
     expect(await page.evaluate(() => document.documentElement.scrollHeight <= innerHeight)).toBe(
       true,

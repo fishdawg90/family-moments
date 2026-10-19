@@ -35,6 +35,7 @@ import {
 } from './firebase';
 import { BASE, profileFromPath, profiles, TEST_MODE } from './config';
 import { createSyncRunner } from './sync-runner';
+import { useAppNavigation } from './navigation';
 import {
   formatDate,
   formatTime,
@@ -214,6 +215,9 @@ export default function App() {
   );
 }
 function Workspace({ uid, email }: { uid: string; email: string }) {
+  const navigation = useAppNavigation();
+  const { view, moment: opened, delete: deleteId, source: attachmentSource } = navigation.screen;
+  const [attachmentControls, setAttachmentControls] = useState<HTMLDivElement | null>(null);
   const [draft, setDraft] = useState<Draft>(emptyDraft(uid, profile.id)),
     [loaded, setLoaded] = useState(false),
     [rows, setRows] = useState<LocalMoment[]>([]),
@@ -221,13 +225,10 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
   const [error, setError] = useState(''),
     [notice, setNotice] = useState(''),
     [sync, setSync] = useState('Checking cloud…'),
-    [online, setOnline] = useState(navigator.onLine),
-    [view, setView] = useState<'capture' | 'recent' | 'settings'>('capture');
+    [online, setOnline] = useState(navigator.onLine);
   const [saving, setSaving] = useState(false),
     [attaching, setAttaching] = useState(false),
-    [opened, setOpened] = useState(''),
     [undo, setUndo] = useState<{ id: string; deleted: boolean } | null>(null),
-    [deleteId, setDeleteId] = useState(''),
     [showDeleted, setShowDeleted] = useState(false),
     [more, setMore] = useState(true),
     [exporting, setExporting] = useState(false),
@@ -419,16 +420,6 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
     };
   }, [uid, active, refreshLocal, retry, backup]);
   useEffect(() => {
-    const pop = (event: PopStateEvent) => {
-      const next = event.state || {};
-      setDeleteId(next.delete || '');
-      setOpened(next.moment || '');
-      setView(next.view || 'capture');
-    };
-    window.addEventListener('popstate', pop);
-    return () => window.removeEventListener('popstate', pop);
-  }, []);
-  useEffect(() => {
     const leave = (e: BeforeUnloadEvent) => {
       if (attaching || saving) {
         e.preventDefault();
@@ -451,9 +442,7 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
     });
   };
   const navigate = (next: typeof view) => {
-    if (next !== 'capture') history.pushState({ view: next }, '');
-    setView(next);
-    setOpened('');
+    navigation.open({ view: next, moment: '', delete: '', source: null, date: false });
   };
   const submit = async () => {
     if (saveGuard.current || attaching || !loaded) return;
@@ -493,14 +482,13 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
       return;
     const next = asDraft(uid, row.value);
     update(next);
-    setView('capture');
-    setOpened('');
+    navigation.replace({ view: 'capture', moment: '', delete: '', source: null, date: false });
     setNotice('Editing a saved moment');
   };
   const changeDelete = async (id: string, deleted: boolean) => {
     try {
       await changeDeleted(uid, id, deleted);
-      setDeleteId('');
+      if (deleteId) navigation.back();
       setUndo({ id, deleted });
       setNotice(deleted ? 'Moved to Recently deleted' : 'Moment restored');
       await refreshLocal();
@@ -571,8 +559,9 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
             type="button"
             className="moment-open"
             onClick={() => {
-              if (!full) history.pushState({ view, moment: m.id }, '');
-              setOpened(full ? '' : m.id);
+              if (full) navigation.back();
+              else if (opened) navigation.replace({ moment: m.id, source: null });
+              else navigation.open({ moment: m.id, source: null });
             }}
             aria-expanded={full}
           >
@@ -668,8 +657,7 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
                     <button
                       className="danger"
                       onClick={() => {
-                        history.pushState({ view, moment: m.id, delete: m.id }, '');
-                        setDeleteId(m.id);
+                        navigation.open({ delete: m.id });
                       }}
                     >
                       Delete
@@ -686,16 +674,6 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
   };
   const notifications = (
     <>
-      {TEST_MODE && <p className="test-banner">Local browser test · no cloud writes</p>}
-      {pending.length > 0 && (
-        <p className="pending-note" role="status">
-          {pending.length} moment{pending.length === 1 ? '' : 's'}{' '}
-          {pending.some((r) => r.status === 'conflict')
-            ? 'need review'
-            : 'waiting for cloud confirmation'}
-          . Keep this phone’s data until they sync or you export a media backup.
-        </p>
-      )}
       {error && (
         <div className="error-banner" role="alert">
           {error}
@@ -729,6 +707,16 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
           </button>
         </div>
       )}
+      {pending.length > 0 && (
+        <p className="pending-note" role="status">
+          {pending.length} moment{pending.length === 1 ? '' : 's'}{' '}
+          {pending.some((r) => r.status === 'conflict')
+            ? 'need review'
+            : 'waiting for cloud confirmation'}
+          . Keep this phone’s data until they sync or you export a media backup.
+        </p>
+      )}
+      {TEST_MODE && <p className="test-banner">Local browser test · no cloud writes</p>}
     </>
   );
   return (
@@ -784,6 +772,7 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
                   maxLength={20000}
                   onChange={(e) => update({ text: e.target.value })}
                 />
+                <div className="capture-attachment-controls" ref={setAttachmentControls} />
               </section>
               <div
                 className="capture-scroll"
@@ -794,14 +783,29 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
               >
                 {notifications}
                 <AttachmentPicker
+                  controlsHost={attachmentControls}
+                  source={attachmentSource}
+                  onSourceChange={(source) => {
+                    if (source) {
+                      if (attachmentSource) navigation.replace({ source });
+                      else navigation.open({ source });
+                      captureScrollRef.current?.scrollTo({ top: 0 });
+                    } else if (attachmentSource) navigation.back();
+                  }}
                   uid={uid}
                   attachments={draft.attachments}
                   onChange={(attachments) => update({ attachments })}
                   onBusy={setAttaching}
                   onError={setError}
                 />
-                <details className="event-date">
-                  <summary>
+                <details className="event-date" open={navigation.screen.date}>
+                  <summary
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (navigation.screen.date) navigation.back();
+                      else navigation.open({ date: true, source: null });
+                    }}
+                  >
                     {draft.editingId ? 'Event date' : 'Happened another day?'}{' '}
                     <span>
                       {formatDate(draft.eventAt)} · {formatTime(draft.eventAt)}
@@ -890,8 +894,7 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
             <button
               className="text-button back"
               onClick={() => {
-                setView('capture');
-                setOpened('');
+                navigation.capture();
               }}
             >
               <ArrowLeft size={16} /> Back to capture
@@ -904,7 +907,7 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
                 checked={showDeleted}
                 onChange={(e) => {
                   setShowDeleted(e.target.checked);
-                  setOpened('');
+                  if (opened) navigation.back();
                 }}
               />{' '}
               Recently deleted
@@ -930,7 +933,7 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
         )}
         {view === 'settings' && (
           <section className="settings">
-            <button className="text-button back" onClick={() => setView('capture')}>
+            <button className="text-button back" onClick={navigation.capture}>
               <ArrowLeft size={16} /> Back to capture
             </button>
             <h1>Your private space</h1>
@@ -1089,7 +1092,10 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
             aria-labelledby="delete-title"
             className="dialog"
             onKeyDown={(e) => {
-              if (e.key === 'Escape') setDeleteId('');
+              if (e.key === 'Escape') {
+                e.stopPropagation();
+                navigation.back();
+              }
               if (e.key === 'Tab') {
                 const buttons = e.currentTarget.querySelectorAll<HTMLButtonElement>('button');
                 const first = buttons[0],
@@ -1109,7 +1115,7 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
               You can restore the record from Recently deleted. Cloud files are eligible for removal
               after 7 days; this phone keeps its saved files.
             </p>
-            <button autoFocus onClick={() => setDeleteId('')}>
+            <button autoFocus onClick={navigation.back}>
               Keep moment
             </button>
             <button className="danger" onClick={() => void changeDelete(deleteId, true)}>

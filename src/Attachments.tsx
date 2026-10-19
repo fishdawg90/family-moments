@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import type { AttachmentSource } from './navigation';
 import { Camera, Images, Mic, Paperclip, Square, Video, X } from 'lucide-react';
 import type { Attachment } from './types';
 import { getMedia, rememberMedia } from './storage';
@@ -97,12 +99,18 @@ export function MediaPreview({ uid, a }: { uid: string; a: Attachment }) {
   );
 }
 export function AttachmentPicker({
+  controlsHost,
+  source,
+  onSourceChange: setSource,
   uid,
   attachments,
   onChange,
   onBusy,
   onError,
 }: {
+  controlsHost: HTMLElement | null;
+  source: AttachmentSource;
+  onSourceChange: (source: AttachmentSource) => void;
   uid: string;
   attachments: Attachment[];
   onChange: (list: Attachment[]) => void;
@@ -116,8 +124,9 @@ export function AttachmentPicker({
     files = useRef<HTMLInputElement>(null);
   const latest = useRef(attachments);
   latest.current = attachments;
+  const changeSource = useRef(setSource);
+  changeSource.current = setSource;
   const [working, setWorking] = useState(false),
-    [source, setSource] = useState<'photo' | 'video' | null>(null),
     [recording, setRecording] = useState(false),
     [seconds, setSeconds] = useState(0),
     [audio, setAudio] = useState<{ blob: Blob; url: string } | null>(null);
@@ -125,6 +134,10 @@ export function AttachmentPicker({
     stream = useRef<MediaStream | null>(null),
     mounted = useRef(true),
     audioUrl = useRef('');
+  useEffect(() => {
+    if (recording && source !== 'audio' && recorder.current?.state === 'recording')
+      recorder.current.stop();
+  }, [source, recording]);
   useEffect(() => {
     mounted.current = true;
     return () => {
@@ -218,6 +231,7 @@ export function AttachmentPicker({
         media.getTracks().forEach((t) => t.stop());
         if (!mounted.current) return;
         setRecording(false);
+        changeSource.current(null);
         onBusy(false);
         const blob = new Blob(chunks, { type: r.mimeType });
         const url = URL.createObjectURL(blob);
@@ -227,10 +241,12 @@ export function AttachmentPicker({
       r.onerror = () => {
         media.getTracks().forEach((t) => t.stop());
         setRecording(false);
+        changeSource.current(null);
         onBusy(false);
         onError('Recording was interrupted. Please try again or choose an existing audio file.');
       };
       r.start(1000);
+      changeSource.current('audio');
       setSeconds(0);
       setRecording(true);
       onBusy(true);
@@ -239,58 +255,63 @@ export function AttachmentPicker({
       onError((e as Error).message);
     }
   };
+  const controls = (
+    <div className="attachment-tools">
+      <button
+        type="button"
+        disabled={working || recording}
+        aria-expanded={source === 'photo'}
+        aria-controls="attachment-source"
+        onClick={() => setSource(source === 'photo' ? null : 'photo')}
+      >
+        <Camera />
+        <span>Photo</span>
+      </button>
+      <button
+        type="button"
+        disabled={working || recording}
+        aria-expanded={source === 'video'}
+        aria-controls="attachment-source"
+        onClick={() => setSource(source === 'video' ? null : 'video')}
+      >
+        <Video />
+        <span>Video</span>
+      </button>
+      <button
+        type="button"
+        disabled={working || !!audio}
+        onClick={() => {
+          if (recording) recorder.current?.stop();
+          else void record();
+        }}
+      >
+        {recording ? <Square /> : <Mic />}
+        <span>
+          {recording
+            ? `Stop ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
+            : 'Audio'}
+        </span>
+      </button>
+      <button
+        type="button"
+        disabled={working || recording}
+        onClick={() => {
+          setSource(null);
+          files.current?.click();
+        }}
+      >
+        <Paperclip />
+        <span>Files</span>
+      </button>
+    </div>
+  );
   return (
-    <section className="attachment-picker" aria-label="Attachments">
-      <div className="attachment-tools">
-        <button
-          type="button"
-          disabled={working || recording}
-          aria-expanded={source === 'photo'}
-          aria-controls="attachment-source"
-          onClick={() => setSource(source === 'photo' ? null : 'photo')}
-        >
-          <Camera />
-          <span>Photo</span>
-        </button>
-        <button
-          type="button"
-          disabled={working || recording}
-          aria-expanded={source === 'video'}
-          aria-controls="attachment-source"
-          onClick={() => setSource(source === 'video' ? null : 'video')}
-        >
-          <Video />
-          <span>Video</span>
-        </button>
-        <button
-          type="button"
-          disabled={working || !!audio}
-          onClick={() => {
-            setSource(null);
-            if (recording) recorder.current?.stop();
-            else void record();
-          }}
-        >
-          {recording ? <Square /> : <Mic />}
-          <span>
-            {recording
-              ? `Stop ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
-              : 'Audio'}
-          </span>
-        </button>
-        <button
-          type="button"
-          disabled={working || recording}
-          onClick={() => {
-            setSource(null);
-            files.current?.click();
-          }}
-        >
-          <Paperclip />
-          <span>Files</span>
-        </button>
-      </div>
-      {source && (
+    <section
+      className={`attachment-picker ${source || working || recording || audio || attachments.length ? 'attachment-content' : ''}`}
+      aria-label="Attachments"
+    >
+      {controlsHost && createPortal(controls, controlsHost)}
+      {(source === 'photo' || source === 'video') && (
         <div
           id="attachment-source"
           className="attachment-source"
@@ -298,12 +319,8 @@ export function AttachmentPicker({
           aria-label={source === 'photo' ? 'Add a photo' : 'Add a video'}
           onKeyDown={(e) => {
             if (e.key === 'Escape') {
+              e.stopPropagation();
               setSource(null);
-              (
-                e.currentTarget.parentElement?.querySelector(
-                  `button[aria-expanded="true"]`,
-                ) as HTMLButtonElement | null
-              )?.focus();
             }
           }}
         >

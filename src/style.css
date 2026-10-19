@@ -844,11 +844,24 @@ small,
   outline: 2px solid var(--accent);
   outline-offset: -2px;
 }
-.capture-mode .attachment-picker {
+.capture-mode .attachment-content {
   background: #fff;
   border: 1px solid #e9e2d8;
   border-radius: 18px;
   overflow: hidden;
+}
+.capture-mode .attachment-content .attachment-source {
+  padding-top: 12px;
+}
+.capture-attachment-controls .attachment-tools {
+  padding-bottom: 8px;
+}
+.capture-attachment-controls {
+  flex-shrink: 0;
+}
+.capture-mode.compact-viewport .capture-attachment-controls .attachment-tools button {
+  padding-block: 5px;
+  gap: 3px;
 }
 .capture-mode .save-area {
   flex-shrink: 0;

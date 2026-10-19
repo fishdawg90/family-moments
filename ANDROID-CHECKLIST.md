@@ -11,7 +11,9 @@ These tests require the two actual phones and deployed live configuration. Deskt
 - [ ] Capture a 10–60 second video and play it locally. Try a file over 100 MB and verify a friendly rejection with the capture intact.
 - [ ] Record microphone audio; stop, preview, discard; record again, attach, save offline and reopen. Deny microphone permission and verify the existing-audio fallback.
 - [ ] Use Files to attach a PDF from Android’s file picker, save offline, reopen and download/open it. Test DOCX/TXT without executing document content. Confirm there is no separate Document button.
-- [ ] With the keyboard open at 360–430 CSS px, type multiline text/emoji, find/create a tag and reach Save without hidden controls or jumps. Test a large font setting.
+- [ ] With the keyboard open at 360–430 CSS px, type multiline text/emoji and confirm Photo, Video, Audio and Files stay fixed beneath the text box while tags/recent memories scroll. Reach Save without hidden controls or jumps. Test a large font setting.
+- [ ] Use Android Back/swipe while typing: dismiss the keyboard/focus with the draft intact. Open Photo/Video choices, cancel the native camera/gallery picker, then swipe Back to close the choices. Expand an event date, a saved memory and its deletion confirmation: Back closes each current interaction before returning to capture or leaving the browser. Repeat typing/open/close several times to check there are no stale Back steps.
+- [ ] Swipe Back during audio recording. Confirm the microphone stops and the recording preview remains available to attach and save.
 - [ ] Verify an empty or tags-only capture cannot be saved. Save clears text only after local success; Undo moves accidental saves to Recently deleted.
 - [ ] Use a retrospective event date, including around London clock changes; check the displayed date on the other phone.
 - [ ] Turn internet back on. Confirm metadata and private files arrive on the other parent’s account; pending attachments remain identifiable until complete.

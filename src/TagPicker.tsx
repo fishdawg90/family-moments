@@ -78,6 +78,10 @@ export function TagPicker({
           setSearch(e.target.value);
           setActive(-1);
         }}
+        onBlur={() => {
+          setSearch('');
+          setActive(-1);
+        }}
         onKeyDown={(e) => {
           const count = matches.length + (canCreate ? 1 : 0);
           if (e.key === 'Escape') {
