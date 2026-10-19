@@ -1,0 +1,28 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    function member() {
+      return request.auth != null && firestore.exists(/databases/(default)/documents/households/home/members/$(request.auth.uid));
+    }
+    function allowedMedia() {
+      let mime = request.resource.contentType;
+      let size = request.resource.size;
+      return size > 0 &&
+        ((mime in ['image/jpeg','image/png','image/webp'] && size <= 15 * 1024 * 1024) ||
+         (mime in ['video/mp4','video/webm','video/quicktime'] && size <= 100 * 1024 * 1024) ||
+         (mime in ['audio/webm','audio/ogg','audio/mp4','audio/mpeg','audio/wav'] && size <= 25 * 1024 * 1024) ||
+         (mime in ['application/pdf','text/plain','application/vnd.openxmlformats-officedocument.wordprocessingml.document'] && size <= 20 * 1024 * 1024));
+    }
+    match /moments/home/{profileId}/{momentId}/{attachmentId} {
+      function pathIsValid() {
+        return profileId.matches('[a-z][a-z0-9-]{0,39}') && momentId.matches('[a-f0-9-]{36}') && attachmentId.matches('[a-f0-9-]{36}');
+      }
+      allow read: if member() && pathIsValid();
+      // Immutable content identity allows safe repeated resumable uploads to the same object.
+      allow create, update: if member() && pathIsValid() && allowedMedia() && request.resource.metadata.uploadedByUid == request.auth.uid && request.resource.metadata.sha256.matches('[a-f0-9]{64}') &&
+        (resource == null || (request.resource.metadata.sha256 == resource.metadata.sha256 && request.resource.size == resource.size && request.resource.contentType == resource.contentType));
+      allow delete: if member() && pathIsValid();
+    }
+    match /{allPaths=**} { allow read, write: if false; }
+  }
+}

@@ -1,0 +1,9 @@
+node_modules/
+dist/
+reference/
+tools/
+test-results/
+playwright-report/
+pnpm-lock.yaml
+*.log
+docs/screenshots/

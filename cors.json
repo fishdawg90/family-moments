@@ -1,0 +1,8 @@
+[
+  {
+    "origin": ["https://fishdawg90.github.io"],
+    "method": ["GET", "HEAD"],
+    "responseHeader": ["Content-Type", "Content-Length", "Content-Disposition", "ETag"],
+    "maxAgeSeconds": 3600
+  }
+]

@@ -1,0 +1,93 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function householdMember(householdId) {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/households/$(householdId)/members/$(request.auth.uid));
+    }
+
+    match /households/{householdId}/members/{userId} {
+      allow get: if request.auth != null && request.auth.uid == userId;
+      allow list, create, update, delete: if false;
+    }
+
+    match /households/{householdId}/{kind}/{itemId} {
+      allow read, write: if kind in ['list', 'pantry', 'purchases', 'catalogue', 'usageCycles'] &&
+        householdMember(householdId);
+
+      allow read: if kind in ['appointmentPhrases', 'appointmentHistory'] &&
+        householdMember(householdId);
+
+      allow create, update: if kind == 'appointmentPhrases' && householdMember(householdId) &&
+        request.resource.data.keys().hasOnly(['kind', 'text', 'normalised', 'useCount', 'lastUsedAt']) &&
+        request.resource.data.kind in ['description', 'location'] &&
+        request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 80 &&
+        request.resource.data.normalised is string && request.resource.data.normalised.size() > 0 && request.resource.data.normalised.size() <= 80 &&
+        request.resource.data.useCount is int && request.resource.data.useCount >= 0;
+
+      allow create: if kind == 'appointmentHistory' && householdMember(householdId) &&
+        request.resource.data.keys().hasOnly(['descriptionPhrases', 'locationPhrases', 'eventDates', 'submittedAt', 'createdBy']) &&
+        request.resource.data.createdBy == request.auth.uid &&
+        request.resource.data.descriptionPhrases is list && request.resource.data.descriptionPhrases.size() <= 20 &&
+        request.resource.data.locationPhrases is list && request.resource.data.locationPhrases.size() <= 10 &&
+        request.resource.data.eventDates is list && request.resource.data.eventDates.size() <= 31;
+      allow update, delete: if kind == 'appointmentHistory' && false;
+      allow delete: if kind == 'appointmentPhrases' && false;
+    }
+
+    // Family Moments additions. Existing shopping/calendar permissions above are preserved.
+    function validAttachment(a, momentId, profileId) {
+      // Blob MIME/size validation is enforced by Storage rules. Keep this bounded
+      // metadata check small enough for Firestore's 1,000-expression ceiling.
+      return a.id.matches('[a-f0-9-]{36}') && a.name is string &&
+        a.size is int && a.size > 0 && a.size <= 104857600 && a.remote is bool &&
+        a.hash.matches('[a-f0-9]{64}') &&
+        a.path == 'moments/home/' + profileId + '/' + momentId + '/' + a.id &&
+        a.kind in ['image','video','audio','document'] && a.mime is string;
+    }
+    function validMoment(id) {
+      let d = request.resource.data;
+      return d.keys().hasAll(['id','profileId','text','tagIds','eventAt','createdAt','updatedAt','createdByUid','updatedByUid','revision','attachments','deletedAt','schemaVersion','lastOpId']) &&
+        d.keys().hasOnly(['id','profileId','text','tagIds','eventAt','createdAt','updatedAt','createdByUid','updatedByUid','revision','attachments','deletedAt','schemaVersion','lastOpId','cloudUpdatedAt']) &&
+        (!('cloudUpdatedAt' in d) || d.cloudUpdatedAt == request.time) &&
+        d.id == id && d.profileId is string && d.profileId.matches('[a-z][a-z0-9-]{0,39}') &&
+        d.text is string && d.text.size() <= 20000 && d.tagIds is list && d.tagIds.size() <= 50 &&
+        d.attachments is list && d.attachments.size() <= 6 &&
+        (d.text.size() > 0 || d.attachments.size() > 0) &&
+        d.eventAt is string && d.eventAt.matches('[0-9]{4}-[0-9]{2}-[0-9]{2}T.*Z') &&
+        d.createdAt is string && d.updatedAt is string &&
+        d.createdByUid is string && d.updatedByUid == request.auth.uid &&
+        d.revision is int && d.revision > 0 && d.schemaVersion == 1 &&
+        d.lastOpId is string && d.lastOpId.size() > 0 && d.lastOpId.size() <= 80 &&
+        (d.deletedAt == null || d.deletedAt is string) &&
+        (d.attachments.size() <= 0 || validAttachment(d.attachments[0], d.id, d.profileId)) &&
+        (d.attachments.size() <= 1 || validAttachment(d.attachments[1], d.id, d.profileId)) &&
+        (d.attachments.size() <= 2 || validAttachment(d.attachments[2], d.id, d.profileId)) &&
+        (d.attachments.size() <= 3 || validAttachment(d.attachments[3], d.id, d.profileId)) &&
+        (d.attachments.size() <= 4 || validAttachment(d.attachments[4], d.id, d.profileId)) &&
+        (d.attachments.size() <= 5 || validAttachment(d.attachments[5], d.id, d.profileId));
+    }
+    match /households/home/moments/{id} {
+      allow read: if householdMember('home');
+      allow create: if householdMember('home') && validMoment(id) &&
+        request.resource.data.createdByUid == request.auth.uid && request.resource.data.revision == 1;
+      allow update: if householdMember('home') && validMoment(id) &&
+        request.resource.data.createdByUid == resource.data.createdByUid &&
+        request.resource.data.createdAt == resource.data.createdAt &&
+        request.resource.data.profileId == resource.data.profileId &&
+        ((request.resource.data.revision == resource.data.revision + 1 && request.resource.data.lastOpId != resource.data.lastOpId) ||
+         (request.resource.data.revision == resource.data.revision && request.resource.data.lastOpId == resource.data.lastOpId &&
+          request.resource.data.diff(resource.data).affectedKeys().hasOnly(['attachments','cloudUpdatedAt'])));
+      allow delete: if false;
+    }
+    match /households/home/momentTags/{id} {
+      allow read: if householdMember('home');
+      allow create: if householdMember('home') &&
+        request.resource.data.keys().hasOnly(['id','label','canonical']) && request.resource.data.id == id &&
+        request.resource.data.label is string && request.resource.data.label.size() > 0 && request.resource.data.label.size() <= 80 &&
+        request.resource.data.canonical is string && request.resource.data.canonical.size() > 0 && request.resource.data.canonical.size() <= 80;
+      allow update, delete: if false;
+    }
+    match /{document=**} { allow read, write: if false; }
+  }
+}
