@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Camera, FilePlus2, Mic, Paperclip, Square, Video, X } from 'lucide-react';
+import { Camera, Images, Mic, Paperclip, Square, Video, X } from 'lucide-react';
 import type { Attachment } from './types';
 import { getMedia, rememberMedia } from './storage';
 import { prepareFile, MB } from './media';
@@ -111,11 +111,13 @@ export function AttachmentPicker({
 }) {
   const image = useRef<HTMLInputElement>(null),
     video = useRef<HTMLInputElement>(null),
-    files = useRef<HTMLInputElement>(null),
-    docs = useRef<HTMLInputElement>(null);
+    galleryImages = useRef<HTMLInputElement>(null),
+    galleryVideos = useRef<HTMLInputElement>(null),
+    files = useRef<HTMLInputElement>(null);
   const latest = useRef(attachments);
   latest.current = attachments;
   const [working, setWorking] = useState(false),
+    [source, setSource] = useState<'photo' | 'video' | null>(null),
     [recording, setRecording] = useState(false),
     [seconds, setSeconds] = useState(0),
     [audio, setAudio] = useState<{ blob: Blob; url: string } | null>(null);
@@ -165,6 +167,7 @@ export function AttachmentPicker({
   const input = (
     ref: React.RefObject<HTMLInputElement | null>,
     accept: string,
+    label: string,
     capture?: 'environment',
   ) => (
     <input
@@ -172,12 +175,16 @@ export function AttachmentPicker({
       hidden
       type="file"
       accept={accept}
+      aria-label={label}
       multiple={!capture}
       capture={capture}
       onChange={(e) => {
         const list = Array.from(e.target.files || []);
         e.target.value = '';
-        void add(list);
+        if (list.length) {
+          setSource(null);
+          void add(list);
+        }
       }}
     />
   );
@@ -238,7 +245,9 @@ export function AttachmentPicker({
         <button
           type="button"
           disabled={working || recording}
-          onClick={() => image.current?.click()}
+          aria-expanded={source === 'photo'}
+          aria-controls="attachment-source"
+          onClick={() => setSource(source === 'photo' ? null : 'photo')}
         >
           <Camera />
           <span>Photo</span>
@@ -246,7 +255,9 @@ export function AttachmentPicker({
         <button
           type="button"
           disabled={working || recording}
-          onClick={() => video.current?.click()}
+          aria-expanded={source === 'video'}
+          aria-controls="attachment-source"
+          onClick={() => setSource(source === 'video' ? null : 'video')}
         >
           <Video />
           <span>Video</span>
@@ -254,7 +265,11 @@ export function AttachmentPicker({
         <button
           type="button"
           disabled={working || !!audio}
-          onClick={() => (recording ? recorder.current?.stop() : void record())}
+          onClick={() => {
+            setSource(null);
+            if (recording) recorder.current?.stop();
+            else void record();
+          }}
         >
           {recording ? <Square /> : <Mic />}
           <span>
@@ -266,20 +281,70 @@ export function AttachmentPicker({
         <button
           type="button"
           disabled={working || recording}
-          onClick={() => files.current?.click()}
+          onClick={() => {
+            setSource(null);
+            files.current?.click();
+          }}
         >
           <Paperclip />
           <span>Files</span>
         </button>
-        <button type="button" disabled={working || recording} onClick={() => docs.current?.click()}>
-          <FilePlus2 />
-          <span>Document</span>
-        </button>
       </div>
-      {input(image, 'image/jpeg,image/png,image/webp', 'environment')}
-      {input(video, 'video/mp4,video/webm,video/quicktime', 'environment')}
-      {input(files, 'image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime,audio/*')}
-      {input(docs, '.pdf,.docx,.txt')}
+      {source && (
+        <div
+          id="attachment-source"
+          className="attachment-source"
+          role="group"
+          aria-label={source === 'photo' ? 'Add a photo' : 'Add a video'}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setSource(null);
+              (
+                e.currentTarget.parentElement?.querySelector(
+                  `button[aria-expanded="true"]`,
+                ) as HTMLButtonElement | null
+              )?.focus();
+            }
+          }}
+        >
+          <button
+            type="button"
+            disabled={working || recording}
+            onClick={() => {
+              (source === 'photo' ? image : video).current?.click();
+            }}
+          >
+            {source === 'photo' ? <Camera size={18} /> : <Video size={18} />}
+            {source === 'photo' ? 'Take photo' : 'Record video'}
+          </button>
+          <button
+            type="button"
+            disabled={working || recording}
+            onClick={() => {
+              (source === 'photo' ? galleryImages : galleryVideos).current?.click();
+            }}
+          >
+            <Images size={18} /> Choose from gallery
+          </button>
+          <button
+            type="button"
+            className="icon-button"
+            aria-label="Close attachment choices"
+            onClick={() => setSource(null)}
+          >
+            <X size={18} />
+          </button>
+        </div>
+      )}
+      {input(image, 'image/*', 'Take a new photo', 'environment')}
+      {input(video, 'video/*', 'Record a new video', 'environment')}
+      {input(galleryImages, 'image/*', 'Choose photos from gallery')}
+      {input(galleryVideos, 'video/*', 'Choose videos from gallery')}
+      {input(
+        files,
+        'image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime,audio/*,.pdf,.docx,.txt',
+        'Choose files',
+      )}
       {working && (
         <p className="muted" role="status">
           Saving attachment on this phone…

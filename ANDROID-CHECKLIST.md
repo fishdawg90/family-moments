@@ -6,10 +6,11 @@ These tests require the two actual phones and deployed live configuration. Deskt
 - [ ] Install/add each profile from its own URL. Launch Giulia, Nina, My Moments, then Giulia again. Confirm no shortcut takes on the last-used profile.
 - [ ] After shell caching and an online sign-in, enable airplane mode, close Chrome/PWA, launch every shortcut and verify capture loads.
 - [ ] Save text offline, force-close/reopen, and find the pending record and unfinished draft.
-- [ ] Take a new photo; attach two gallery images; remove one; save photo-only; check orientation and clarity.
+- [ ] Tap Photo → Take photo; cancel the camera and choose from gallery instead. Attach two gallery images; remove one; save photo-only; check orientation and clarity.
+- [ ] Tap Video → Record video, then separately Video → Choose from gallery. Confirm the gallery opens without browsing Files and selected clips remain playable after reopening.
 - [ ] Capture a 10–60 second video and play it locally. Try a file over 100 MB and verify a friendly rejection with the capture intact.
 - [ ] Record microphone audio; stop, preview, discard; record again, attach, save offline and reopen. Deny microphone permission and verify the existing-audio fallback.
-- [ ] Attach a PDF from Android’s file picker, save offline, reopen and download/open it. Test DOCX/TXT without executing document content.
+- [ ] Use Files to attach a PDF from Android’s file picker, save offline, reopen and download/open it. Test DOCX/TXT without executing document content. Confirm there is no separate Document button.
 - [ ] With the keyboard open at 360–430 CSS px, type multiline text/emoji, find/create a tag and reach Save without hidden controls or jumps. Test a large font setting.
 - [ ] Verify an empty or tags-only capture cannot be saved. Save clears text only after local success; Undo moves accidental saves to Recently deleted.
 - [ ] Use a retrospective event date, including around London clock changes; check the displayed date on the other phone.

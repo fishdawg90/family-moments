@@ -42,7 +42,7 @@ test('two household accounts share private SDK uploads; offline edits surface co
 }) => {
   await signIn(page, first);
   await page.getByLabel('What happened today?', { exact: true }).fill('A real emulator memory');
-  await page.locator('input[type=file][accept=".pdf,.docx,.txt"]').setInputFiles({
+  await page.locator('input[aria-label="Choose files"]').setInputFiles({
     name: 'private.pdf',
     mimeType: 'application/pdf',
     buffer: Buffer.from('%PDF-1.4\nprivate emulator attachment'),
