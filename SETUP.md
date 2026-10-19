@@ -1,8 +1,8 @@
 # Owner setup — remaining steps
 
-The local application and tests are prepared. No live Firebase rules, billing settings or existing app deployments were changed. There is no verified live Family Moments deployment yet.
+The application is deployed to GitHub Pages. The owner has published the prepared Storage rules and combined Firestore rules and configured CORS. Existing shopping/calendar application deployments were not changed. All three profile URLs, install manifests and offline app shells have been verified live; authenticated real-phone acceptance is the remaining release check.
 
-The owner has now created the GitHub repository and confirmed the existing bucket as `gs://la-spesa-5cc7a.firebasestorage.app`. This public bucket name is configured as the app default, so a GitHub Actions bucket variable is optional. Live rules, CORS and two-phone operation still need verification.
+The owner confirmed the existing bucket as `gs://la-spesa-5cc7a.firebasestorage.app`. This public bucket name is configured as the app default, so a GitHub Actions bucket variable is optional. Live CORS preflight and anonymous Storage access denial have been checked. Authenticated live media transfer and two-phone operation still need verification. The steps below remain as a maintenance/recovery reference.
 
 ## 1. Create the GitHub repository
 

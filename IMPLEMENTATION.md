@@ -12,16 +12,16 @@ Weekly local snapshots use content-addressed objects, with JSON export, media ZI
 
 ## Verification completed
 
-| Evidence                                                           | Result                                            |
-| ------------------------------------------------------------------ | ------------------------------------------------- |
-| TypeScript strict check                                            | Passed                                            |
-| Domain, IndexedDB, tag, backup and mocked-transport tests          | 24 passed                                         |
-| Firestore/Storage emulator regression scenarios                    | 19 passed                                         |
-| Desktop Chrome browser/PWA scenarios                               | 6 passed                                          |
-| Actual Firebase SDK through local Auth/Firestore/Storage emulators | 1 end-to-end scenario passed                      |
-| Production build and generated static entrypoints/manifests/icons  | Passed                                            |
-| Desktop backup/export script                                       | Syntax checked; live execution unverified         |
-| Visual inspection                                                  | Mobile capture screenshot inspected at 390 CSS px |
+| Evidence                                                                   | Result                                            |
+| -------------------------------------------------------------------------- | ------------------------------------------------- |
+| TypeScript strict check                                                    | Passed                                            |
+| Domain, IndexedDB, tag, backup, sync scheduling and mocked-transport tests | 27 passed                                         |
+| Firestore/Storage emulator regression scenarios                            | 19 passed                                         |
+| Desktop Chrome browser/PWA scenarios                                       | 6 passed                                          |
+| Actual Firebase SDK through local Auth/Firestore/Storage emulators         | 1 end-to-end scenario passed                      |
+| Production build and generated static entrypoints/manifests/icons          | Passed                                            |
+| Desktop backup/export script                                               | Syntax checked; live execution unverified         |
+| Visual inspection                                                          | Mobile capture screenshot inspected at 390 CSS px |
 
 The SDK scenario uses two distinct authenticated household accounts, uploads/retrieves a private PDF, makes concurrent online/offline edits, reviews a conflict, retains both versions and confirms sync. This is actual SDK/emulator traffic, separate from the deterministic mocked-transport tests.
 
@@ -33,15 +33,19 @@ Security tests preserve shopping list/pantry/purchases/catalogue/usage-cycle ope
 
 - Read the requested GitHub repository source snapshots; reused their public Firebase config and named-app persistence pattern.
 - The GitHub connector identifies the signed-in account as `fishdawg90`.
-- No reachable `fishdawg90/family-moments` repository was found using Git. The browser route to repository creation requires sign-in, and the exposed connector has no repository-creation tool.
-- No live Family Moments Firebase writes, live Storage uploads, actual bucket discovery, billing changes, security-rule deployments, CORS changes, Pages deployment or two-phone acceptance are claimed.
+- The owner created `fishdawg90/family-moments`; the application and owner-verified bucket configuration have been pushed to `main`.
+- The owner confirmed the bucket `la-spesa-5cc7a.firebasestorage.app`, published the Storage and combined Firestore rules, and configured CORS. The supplied live Firestore rules matched the existing shopping/calendar clauses retained by the combined file.
+- Live CORS preflight confirms `https://fishdawg90.github.io`, GET/HEAD and the configured 3600-second expiry. The actual Firebase SDK download endpoint accepts its authentication headers. An unauthenticated Firebase Storage listing returns HTTP 403.
+- GitHub Pages is enabled with GitHub Actions. The first hosted run exposed a save-during-sync timing bug; a coalescing scheduler and three regression tests fix it without weakening the browser checks. The [replacement run](https://github.com/fishdawg90/family-moments/actions/runs/39319338159) passed every verification step and deployed successfully.
+- All three live profile entrypoints, manifests and the scoped service worker return HTTP 200. A fresh desktop Chrome session cached the deployed assets and reopened each profile's sign-in shell offline with the correct profile title. This verifies the live shell, not an authenticated family-data transfer.
+- No live authenticated family-record writes, live attachment uploads, billing modifications or physical two-phone acceptance are claimed.
 - Existing shopping/calendar remote repositories and live deployments were left unchanged.
 
 ## Owner/access-dependent steps
 
-Follow [SETUP.md](SETUP.md): create the empty GitHub repository; verify or provision Storage in the existing project and accept Blaze billing if required; add a budget alert and the verified bucket variable; review/publish the complete combined Firestore rules and private Storage rules; merge CORS; configure Pages and push; then test/install each phone’s shortcuts.
+Repository creation, the owner-verified bucket default, owner-published security rules, CORS configuration, Pages deployment and live offline-shell verification are complete. Confirm a billing budget alert, then test authenticated media transfer and install each phone’s shortcuts using [SETUP.md](SETUP.md) and [ANDROID-CHECKLIST.md](ANDROID-CHECKLIST.md). The older repositories still need coordinated combined-rules copies before they next deploy Firebase rules.
 
-The intended URLs after successful deployment are:
+The verified live URLs are:
 
 - https://fishdawg90.github.io/family-moments/giulia/
 - https://fishdawg90.github.io/family-moments/nina/
