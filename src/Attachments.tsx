@@ -233,7 +233,7 @@ export function AttachmentPicker({
     }
   };
   return (
-    <section aria-label="Attachments">
+    <section className="attachment-picker" aria-label="Attachments">
       <div className="attachment-tools">
         <button
           type="button"

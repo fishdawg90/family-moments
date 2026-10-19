@@ -234,6 +234,8 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
     [snapshots, setSnapshots] = useState<Array<{ id: string; at: string }>>([]),
     [backupError, setBackupError] = useState('');
   const [visibleCount, setVisibleCount] = useState(30);
+  const shellRef = useRef<HTMLDivElement>(null);
+  const captureScrollRef = useRef<HTMLDivElement>(null);
   const alive = useRef(true),
     writeChain = useRef(Promise.resolve()),
     current = useRef(draft),
@@ -346,6 +348,28 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
     [syncPass, active],
   );
   useEffect(() => {
+    if (view !== 'capture') return;
+    const shell = shellRef.current;
+    const viewport = window.visualViewport;
+    const resize = () => {
+      shell?.classList.toggle('compact-viewport', (viewport?.height ?? window.innerHeight) <= 600);
+      shell?.style.setProperty('--viewport-height', `${viewport?.height ?? window.innerHeight}px`);
+      shell?.style.setProperty('--viewport-top', `${viewport?.offsetTop ?? 0}px`);
+    };
+    resize();
+    viewport?.addEventListener('resize', resize);
+    viewport?.addEventListener('scroll', resize);
+    window.addEventListener('resize', resize);
+    return () => {
+      viewport?.removeEventListener('resize', resize);
+      viewport?.removeEventListener('scroll', resize);
+      window.removeEventListener('resize', resize);
+      shell?.style.removeProperty('--viewport-height');
+      shell?.style.removeProperty('--viewport-top');
+      shell?.classList.remove('compact-viewport');
+    };
+  }, [view]);
+  useEffect(() => {
     alive.current = true;
     void (async () => {
       const d = await getDraft(uid, profile.id);
@@ -449,6 +473,7 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
       setUndo(edited ? null : { id: sent.id, deleted: false });
       navigator.vibrate?.(18);
       await refreshLocal();
+      captureScrollRef.current?.scrollTo({ top: 0 });
       void retry();
     } catch (e) {
       if (active())
@@ -456,6 +481,7 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
     } finally {
       saveGuard.current = false;
       if (active()) setSaving(false);
+      captureScrollRef.current?.scrollTo({ top: 0 });
     }
   };
   const edit = async (row: LocalMoment) => {
@@ -658,8 +684,55 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
       </div>
     );
   };
-  return (
+  const notifications = (
     <>
+      {TEST_MODE && <p className="test-banner">Local browser test · no cloud writes</p>}
+      {pending.length > 0 && (
+        <p className="pending-note" role="status">
+          {pending.length} moment{pending.length === 1 ? '' : 's'}{' '}
+          {pending.some((r) => r.status === 'conflict')
+            ? 'need review'
+            : 'waiting for cloud confirmation'}
+          . Keep this phone’s data until they sync or you export a media backup.
+        </p>
+      )}
+      {error && (
+        <div className="error-banner" role="alert">
+          {error}
+          <button aria-label="Dismiss error" onClick={() => setError('')}>
+            ×
+          </button>
+        </div>
+      )}
+      {notice && (
+        <div className="save-feedback" role="status">
+          <Check size={18} />
+          <span>{notice}</span>
+          {undo && (
+            <button
+              onClick={async () => {
+                await changeDelete(undo.id, !undo.deleted);
+                setUndo(null);
+              }}
+            >
+              Undo
+            </button>
+          )}
+          <button
+            aria-label="Dismiss message"
+            onClick={() => {
+              setNotice('');
+              setUndo(null);
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
+    </>
+  );
+  return (
+    <div className={`workspace-shell ${view === 'capture' ? 'capture-mode' : ''}`} ref={shellRef}>
       <header className="topbar">
         <a className="brand" href={`${BASE}${profile.id}/`} aria-label={profile.name}>
           <span className="brand-mark">
@@ -678,8 +751,7 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
           <Settings size={21} />
         </button>
       </header>
-      <main className="workspace">
-        {TEST_MODE && <p className="test-banner">Local browser test · no cloud writes</p>}
+      <main className={`workspace ${view === 'capture' ? 'capture-workspace' : ''}`}>
         <div className="status-line">
           <span>{formatDate(new Date().toISOString())}</span>
           <button type="button" onClick={() => void retry()} aria-label={`Sync status: ${status}`}>
@@ -687,48 +759,7 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
             {status}
           </button>
         </div>
-        {pending.length > 0 && (
-          <p className="pending-note" role="status">
-            {pending.length} moment{pending.length === 1 ? '' : 's'}{' '}
-            {pending.some((r) => r.status === 'conflict')
-              ? 'need review'
-              : 'waiting for cloud confirmation'}
-            . Keep this phone’s data until they sync or you export a media backup.
-          </p>
-        )}
-        {error && (
-          <div className="error-banner" role="alert">
-            {error}
-            <button aria-label="Dismiss error" onClick={() => setError('')}>
-              ×
-            </button>
-          </div>
-        )}
-        {notice && (
-          <div className="save-feedback" role="status">
-            <Check size={18} />
-            <span>{notice}</span>
-            {undo && (
-              <button
-                onClick={async () => {
-                  await changeDelete(undo.id, !undo.deleted);
-                  setUndo(null);
-                }}
-              >
-                Undo
-              </button>
-            )}
-            <button
-              aria-label="Dismiss message"
-              onClick={() => {
-                setNotice('');
-                setUndo(null);
-              }}
-            >
-              ×
-            </button>
-          </div>
-        )}
+        {view !== 'capture' && notifications}
         {view === 'capture' && (
           <>
             <div className="capture-heading">
@@ -753,6 +784,15 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
                   maxLength={20000}
                   onChange={(e) => update({ text: e.target.value })}
                 />
+              </section>
+              <div
+                className="capture-scroll"
+                ref={captureScrollRef}
+                role="region"
+                aria-label="Attachments, tags and recent moments"
+                tabIndex={0}
+              >
+                {notifications}
                 <AttachmentPicker
                   uid={uid}
                   attachments={draft.attachments}
@@ -785,23 +825,48 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
                   </label>
                   <small>During autumn’s repeated hour, the earlier occurrence is used.</small>
                 </details>
-              </section>
-              <TagPicker
-                tags={tags}
-                moments={rows.map((r) => r.value)}
-                profile={profile.id}
-                selected={draft.tagIds}
-                onChange={(tagIds) => update({ tagIds })}
-                onCreate={async (label) => {
-                  const tag = makeTag(label),
-                    existing = tags.find((t) => t.id === tag.id);
-                  if (existing) return existing;
-                  await putTag(uid, tag);
-                  await refreshLocal();
-                  void retry();
-                  return tag;
-                }}
-              />
+                <TagPicker
+                  tags={tags}
+                  moments={rows.map((r) => r.value)}
+                  profile={profile.id}
+                  selected={draft.tagIds}
+                  onChange={(tagIds) => update({ tagIds })}
+                  onCreate={async (label) => {
+                    const tag = makeTag(label),
+                      existing = tags.find((t) => t.id === tag.id);
+                    if (existing) return existing;
+                    await putTag(uid, tag);
+                    await refreshLocal();
+                    void retry();
+                    return tag;
+                  }}
+                />
+                {draft.editingId && (
+                  <button
+                    className="text-button"
+                    onClick={() => {
+                      if (confirm('Leave editing and clear this draft?'))
+                        update(emptyDraft(uid, profile.id));
+                    }}
+                  >
+                    Cancel editing
+                  </button>
+                )}
+                <div className="recent-heading">
+                  <h2>Just remembered</h2>
+                  <button className="text-button" onClick={() => navigate('recent')}>
+                    See recent <ChevronRight size={15} />
+                  </button>
+                </div>
+                {visible.length ? (
+                  visible.slice(0, 3).map(renderMoment)
+                ) : (
+                  <div className="empty-state">
+                    <Icon size={28} />
+                    <p>Your little moments will gather here.</p>
+                  </div>
+                )}
+              </div>
             </fieldset>
             <div className="save-area">
               <button
@@ -817,32 +882,7 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
                     : 'Save Moment'}
               </button>
               <small>Private to your family · saved on your phone first</small>
-              {draft.editingId && (
-                <button
-                  className="text-button"
-                  onClick={() => {
-                    if (confirm('Leave editing and clear this draft?'))
-                      update(emptyDraft(uid, profile.id));
-                  }}
-                >
-                  Cancel editing
-                </button>
-              )}
             </div>
-            <div className="recent-heading">
-              <h2>Just remembered</h2>
-              <button className="text-button" onClick={() => navigate('recent')}>
-                See recent <ChevronRight size={15} />
-              </button>
-            </div>
-            {visible.length ? (
-              visible.slice(0, 3).map(renderMoment)
-            ) : (
-              <div className="empty-state">
-                <Icon size={28} />
-                <p>Your little moments will gather here.</p>
-              </div>
-            )}
           </>
         )}
         {view === 'recent' && (
@@ -1078,6 +1118,6 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
           </section>
         </div>
       )}
-    </>
+    </div>
   );
 }
