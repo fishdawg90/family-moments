@@ -33,6 +33,7 @@ Create a budget with email alerts in [Google Cloud Billing budgets](https://cons
 Once the repository exists:
 
 1. The verified bucket is already configured in source. Optionally override it using `FIREBASE_STORAGE_BUCKET` in [repository Actions variables](https://github.com/fishdawg90/family-moments/settings/variables/actions), without `gs://`.
+   The Firebase web key is supplied by the encrypted repository Actions secret `FIREBASE_WEB_API_KEY`, already configured during setup. It becomes `VITE_FIREBASE_API_KEY` only for the production build. For a new repository or key rotation, update that secret before deployment. No literal key is in the current source, but browser JavaScript still contains the web SDK configuration it needs.
 2. In [Pages settings](https://github.com/fishdawg90/family-moments/settings/pages), choose **GitHub Actions** as the build/deployment source.
 3. Push the prepared source to `main` and inspect [Actions](https://github.com/fishdawg90/family-moments/actions). The workflow checks types, unit tests, security rules, actual SDK emulator interactions, production build and browser/PWA behaviour before deploying.
 

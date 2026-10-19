@@ -1,9 +1,10 @@
 import profileDefinitions from './profiles.json';
 export const BASE = '/family-moments/';
 export const FIREBASE_APP_NAME = 'la-spesa-5cc7a';
-// Public web app configuration copied from Our Days. No private credentials.
+// Supply the Firebase web key through the local environment or the build secret.
+// It is still included in browser JavaScript, as required by Firebase's web SDK.
 export const FIREBASE_CONFIG = {
-  apiKey: 'REMOVED_FIREBASE_WEB_API_KEY',
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'demo-family-moments-emulator-key',
   authDomain: 'la-spesa-5cc7a.firebaseapp.com',
   projectId: 'la-spesa-5cc7a',
   appId: '1:767696505467:web:82873e463a2f93782bb0de',

@@ -11,7 +11,9 @@ pnpm dev
 
 Open `http://127.0.0.1:5173/family-moments/giulia/`. Sign in with an existing household account. Initial membership verification requires internet. Local development is a different origin from GitHub Pages, so the Pages sign-in session will not transfer to localhost.
 
-Copy `.env.example` to `.env.local` and set the verified Storage bucket name to enable local cloud attachment transfers. Without it, text/tags can sync and media remains safely queued on the phone.
+Copy `.env.example` to `.env.local` and set `VITE_FIREBASE_API_KEY` to the Firebase web key for local live authentication. The verified Storage bucket is already the default. `.env.local` is ignored by Git. Production builds require the key and read it from the `FIREBASE_WEB_API_KEY` GitHub Actions secret; pull-request build checks use a dummy key and do not deploy. No literal live key is kept in the current tracked source.
+
+The Firebase web SDK necessarily includes the supplied key in the browser bundle. A build secret keeps it out of the source file, but does not turn it into a server-side credential. Firebase Authentication and security rules protect the records and files. Historical commits may still contain the earlier literal key; moving it to an environment variable does not revoke it or erase history.
 
 ## Owner handover
 

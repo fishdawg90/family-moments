@@ -19,6 +19,18 @@ import { createHash } from 'node:crypto';
 import { createInterface } from 'node:readline/promises';
 const bucket = process.argv[2],
   out = process.argv[3];
+try {
+  process.loadEnvFile('.env.local');
+} catch (error) {
+  if (error.code !== 'ENOENT') throw error;
+}
+const apiKey = process.env.FIREBASE_API_KEY || process.env.VITE_FIREBASE_API_KEY;
+if (!apiKey) {
+  console.error(
+    'Set FIREBASE_API_KEY or VITE_FIREBASE_API_KEY, or add it to the ignored .env.local file.',
+  );
+  process.exit(1);
+}
 if (!bucket || !out) {
   console.error('Usage: node scripts/backup.mjs ACTUAL_BUCKET_NAME BACKUP_DIRECTORY');
   process.exit(1);
@@ -63,7 +75,7 @@ async function hiddenPassword() {
   });
 }
 const app = initializeApp({
-  apiKey: 'REMOVED_FIREBASE_WEB_API_KEY',
+  apiKey,
   authDomain: 'la-spesa-5cc7a.firebaseapp.com',
   projectId: 'la-spesa-5cc7a',
   appId: '1:767696505467:web:82873e463a2f93782bb0de',

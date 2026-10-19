@@ -26,6 +26,8 @@ node scripts/backup.mjs ACTUAL_BUCKET_NAME C:/path/to/private-family-backup
 
 It prompts for an existing household account and a hidden password, verifies membership, pages through all cloud records and retrieves media using the authenticated Firebase SDK. It does not need a service-account key, grant public access or create bearer download URLs.
 
+The script loads the ignored `.env.local` file, or accepts `FIREBASE_API_KEY` / `VITE_FIREBASE_API_KEY` from its process environment. It has no literal web key in its tracked source. Configure the key locally before running it; do not paste it into a committed script or a shell command saved in history.
+
 Media is stored by SHA-256 under `media/`. Existing bytes are hash-checked and reused on subsequent runs, so weekly runs do not duplicate the media. Each run stores its JSON manifest in `snapshots/` and updates `latest.json`. Interrupted downloads can be retried by rerunning the command. Missing files are listed in the manifest and yield exit code 2. Deleted moments’ media may already have been cleaned up; their structured records remain in the manifest. This command exports the cloud copy, so export unsynchronised captures separately from each phone.
 
 This command has been syntax-checked, but **has not been run against the live project**. Its live authentication/download path still needs owner verification after bucket setup.

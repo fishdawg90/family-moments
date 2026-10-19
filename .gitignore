@@ -15,6 +15,7 @@ playwright-report/
 .firebase/
 *-debug.log
 tools/jre/
+tools/github-admin/
 coverage/
 *.log
 docs/screenshots/
