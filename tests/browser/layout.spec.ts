@@ -24,6 +24,9 @@ test('capture stays at the top and Save stays at the visible bottom while suppor
     const button = (await save.boundingBox())!;
     expect(size.height - button.y - button.height).toBeLessThan(45);
     const top = (await text.boundingBox())!.y;
+    const header = (await page.locator('.topbar').boundingBox())!;
+    expect(top - header.y - header.height).toBeGreaterThanOrEqual(0);
+    expect(top - header.y - header.height).toBeLessThan(4);
     const photo = page.getByRole('button', { name: 'Photo', exact: true });
     const photoTop = (await photo.boundingBox())!.y;
     await expect(photo).toBeInViewport();

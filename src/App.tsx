@@ -741,6 +741,15 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
       {TEST_MODE && <p className="test-banner">Local browser test · no cloud writes</p>}
     </>
   );
+  const statusLine = (
+    <div className="status-line">
+      <span>{formatDate(new Date().toISOString())}</span>
+      <button type="button" onClick={() => void retry()} aria-label={`Sync status: ${status}`}>
+        <Cloud size={13} />
+        {status}
+      </button>
+    </div>
+  );
   return (
     <div className={`workspace-shell ${view === 'capture' ? 'capture-mode' : ''}`} ref={shellRef}>
       <header className="topbar">
@@ -771,21 +780,14 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
         </div>
       </header>
       <main className={`workspace ${view === 'capture' ? 'capture-workspace' : ''}`}>
-        <div className="status-line">
-          <span>{formatDate(new Date().toISOString())}</span>
-          <button type="button" onClick={() => void retry()} aria-label={`Sync status: ${status}`}>
-            <Cloud size={13} />
-            {status}
-          </button>
-        </div>
-        {view !== 'capture' && notifications}
+        {view !== 'capture' && (
+          <>
+            {statusLine}
+            {notifications}
+          </>
+        )}
         {view === 'capture' && (
           <>
-            <div className="capture-heading">
-              <p className="eyebrow">THE LITTLE THINGS ARE THE BIG THINGS</p>
-              <h1>What happened today?</h1>
-              <p>A first, a funny thing, or just a lovely ordinary day.</p>
-            </div>
             <fieldset
               disabled={saving || !loaded}
               className="capture-fields"
@@ -813,6 +815,7 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
                 tabIndex={0}
               >
                 {notifications}
+                {statusLine}
                 <AttachmentPicker
                   controlsHost={attachmentControls}
                   source={attachmentSource}
