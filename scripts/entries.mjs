@@ -2,11 +2,9 @@ import { readFile, writeFile, mkdir, readdir } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { deflateSync } from 'node:zlib';
 const base = '/family-moments/';
-const profiles = [
-  ['giulia', "Giulia's Moments", 'Giulia', '#95624f'],
-  ['nina', "Nina's Moments", 'Nina', '#6d739e'],
-  ['me', 'My Moments', 'My Moments', '#47786d'],
-];
+const profiles = JSON.parse(
+  await readFile(new URL('../src/profiles.json', import.meta.url), 'utf8'),
+).map((p) => [p.id, p.name, p.short, p.accent]);
 // Tiny dependency-free PNG encoder for installable 192/512px maskable profile icons.
 const crc32 = (b) => {
   let c = 0xffffffff;

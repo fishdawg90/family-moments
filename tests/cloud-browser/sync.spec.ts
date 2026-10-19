@@ -42,13 +42,11 @@ test('two household accounts share private SDK uploads; offline edits surface co
 }) => {
   await signIn(page, first);
   await page.getByLabel('What happened today?', { exact: true }).fill('A real emulator memory');
-  await page
-    .locator('input[type=file][accept=".pdf,.docx,.txt"]')
-    .setInputFiles({
-      name: 'private.pdf',
-      mimeType: 'application/pdf',
-      buffer: Buffer.from('%PDF-1.4\nprivate emulator attachment'),
-    });
+  await page.locator('input[type=file][accept=".pdf,.docx,.txt"]').setInputFiles({
+    name: 'private.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.4\nprivate emulator attachment'),
+  });
   await expect(page.getByRole('button', { name: 'Remove private.pdf' })).toBeVisible();
   await page.getByRole('button', { name: 'Save Moment', exact: true }).click();
   await waitSynced(page);

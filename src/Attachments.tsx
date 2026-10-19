@@ -12,12 +12,16 @@ export function MediaPreview({ uid, a }: { uid: string; a: Attachment }) {
   useEffect(() => {
     let active = true,
       object = '';
-    void getMedia(uid, a.hash).then((m) => {
-      if (m && active) {
-        object = URL.createObjectURL(new Blob([m.blob], { type: a.mime }));
-        setUrl(object);
-      }
-    });
+    void getMedia(uid, a.hash)
+      .then((m) => {
+        if (m && active) {
+          object = URL.createObjectURL(new Blob([m.blob], { type: a.mime }));
+          setUrl(object);
+        }
+      })
+      .catch((e) => {
+        if (active) setError(`Could not read this phone’s file: ${(e as Error).message}`);
+      });
     return () => {
       active = false;
       if (object) URL.revokeObjectURL(object);
@@ -139,21 +143,23 @@ export function AttachmentPicker({
     onBusy(v);
   };
   const add = async (list: File[]) => {
+    const prepared: Attachment[] = [];
     busy(true);
     try {
-      const prepared: Attachment[] = [];
       for (const file of list) {
         if (latest.current.length + prepared.length >= 6)
           throw new Error('Attach up to 6 files per moment.');
         prepared.push(await prepareFile(uid, file));
       }
-      if (mounted.current) onChange([...latest.current, ...prepared]);
       return true;
     } catch (e) {
       onError((e as Error).message);
       return false;
     } finally {
-      if (mounted.current) busy(false);
+      if (mounted.current) {
+        if (prepared.length) onChange([...latest.current, ...prepared]);
+        busy(false);
+      }
     }
   };
   const input = (

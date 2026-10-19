@@ -198,6 +198,12 @@ small,
   box-shadow: 0 5px 22px #654b2910;
   overflow: hidden;
 }
+.capture-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
 .capture-card textarea {
   width: 100%;
   min-height: 157px;
@@ -482,6 +488,7 @@ small,
   min-height: 35px;
 }
 .error-banner {
+  overflow-wrap: anywhere;
   padding: 12px;
   background: #f8e6df;
   border: 1px solid #ecd3c8;

@@ -131,14 +131,12 @@ export async function saveMoment(draft: Draft): Promise<LocalMoment> {
     };
     for (const a of previous?.value.attachments || [])
       if (!attachments.some((b) => b.path === a.path))
-        await tx
-          .objectStore('cleanup')
-          .put({
-            uid: draft.uid,
-            path: a.path,
-            momentId: id,
-            notBefore: Date.now() + 7 * 86400000,
-          });
+        await tx.objectStore('cleanup').put({
+          uid: draft.uid,
+          path: a.path,
+          momentId: id,
+          notBefore: Date.now() + 7 * 86400000,
+        });
     await tx.objectStore('moments').put(row);
     await tx.objectStore('drafts').put(emptyDraft(draft.uid, draft.profileId));
     await tx.done;

@@ -729,67 +729,73 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
               <h1>What happened today?</h1>
               <p>A first, a funny thing, or just a lovely ordinary day.</p>
             </div>
-            <section className="capture-card" aria-label="Capture a moment">
-              <label className="sr-only" htmlFor="thought">
-                What happened today?
-              </label>
-              <textarea
-                id="thought"
-                placeholder="A little moment worth keeping…"
-                value={draft.text}
-                disabled={!loaded || saving}
-                maxLength={20000}
-                onChange={(e) => update({ text: e.target.value })}
-              />
-              <AttachmentPicker
-                uid={uid}
-                attachments={draft.attachments}
-                onChange={(attachments) => update({ attachments })}
-                onBusy={setAttaching}
-                onError={setError}
-              />
-              <details className="event-date">
-                <summary>
-                  {draft.editingId ? 'Event date' : 'Happened another day?'}{' '}
-                  <span>
-                    {formatDate(draft.eventAt)} · {formatTime(draft.eventAt)}
-                  </span>
-                </summary>
-                <label>
-                  When it happened (London time)
-                  <input
-                    aria-label="Event date and time"
-                    type="datetime-local"
-                    value={londonInput(draft.eventAt)}
-                    onChange={(e) => {
-                      try {
-                        update({ eventAt: fromLondonInput(e.target.value) });
-                        setError('');
-                      } catch (error) {
-                        setError((error as Error).message);
-                      }
-                    }}
-                  />
+            <fieldset
+              disabled={saving || !loaded}
+              className="capture-fields"
+              aria-label="Moment details"
+            >
+              <section className="capture-card" aria-label="Capture a moment">
+                <label className="sr-only" htmlFor="thought">
+                  What happened today?
                 </label>
-                <small>During autumn’s repeated hour, the earlier occurrence is used.</small>
-              </details>
-            </section>
-            <TagPicker
-              tags={tags}
-              moments={rows.map((r) => r.value)}
-              profile={profile.id}
-              selected={draft.tagIds}
-              onChange={(tagIds) => update({ tagIds })}
-              onCreate={async (label) => {
-                const tag = makeTag(label),
-                  existing = tags.find((t) => t.id === tag.id);
-                if (existing) return existing;
-                await putTag(uid, tag);
-                await refreshLocal();
-                void retry();
-                return tag;
-              }}
-            />
+                <textarea
+                  id="thought"
+                  placeholder="A little moment worth keeping…"
+                  value={draft.text}
+                  disabled={!loaded || saving}
+                  maxLength={20000}
+                  onChange={(e) => update({ text: e.target.value })}
+                />
+                <AttachmentPicker
+                  uid={uid}
+                  attachments={draft.attachments}
+                  onChange={(attachments) => update({ attachments })}
+                  onBusy={setAttaching}
+                  onError={setError}
+                />
+                <details className="event-date">
+                  <summary>
+                    {draft.editingId ? 'Event date' : 'Happened another day?'}{' '}
+                    <span>
+                      {formatDate(draft.eventAt)} · {formatTime(draft.eventAt)}
+                    </span>
+                  </summary>
+                  <label>
+                    When it happened (London time)
+                    <input
+                      aria-label="Event date and time"
+                      type="datetime-local"
+                      value={londonInput(draft.eventAt)}
+                      onChange={(e) => {
+                        try {
+                          update({ eventAt: fromLondonInput(e.target.value) });
+                          setError('');
+                        } catch (error) {
+                          setError((error as Error).message);
+                        }
+                      }}
+                    />
+                  </label>
+                  <small>During autumn’s repeated hour, the earlier occurrence is used.</small>
+                </details>
+              </section>
+              <TagPicker
+                tags={tags}
+                moments={rows.map((r) => r.value)}
+                profile={profile.id}
+                selected={draft.tagIds}
+                onChange={(tagIds) => update({ tagIds })}
+                onCreate={async (label) => {
+                  const tag = makeTag(label),
+                    existing = tags.find((t) => t.id === tag.id);
+                  if (existing) return existing;
+                  await putTag(uid, tag);
+                  await refreshLocal();
+                  void retry();
+                  return tag;
+                }}
+              />
+            </fieldset>
             <div className="save-area">
               <button
                 className="primary save-button"
@@ -1037,6 +1043,18 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
             className="dialog"
             onKeyDown={(e) => {
               if (e.key === 'Escape') setDeleteId('');
+              if (e.key === 'Tab') {
+                const buttons = e.currentTarget.querySelectorAll<HTMLButtonElement>('button');
+                const first = buttons[0],
+                  last = buttons[buttons.length - 1];
+                if (e.shiftKey && document.activeElement === first) {
+                  e.preventDefault();
+                  last.focus();
+                } else if (!e.shiftKey && document.activeElement === last) {
+                  e.preventDefault();
+                  first.focus();
+                }
+              }
             }}
           >
             <h2 id="delete-title">Delete this moment?</h2>

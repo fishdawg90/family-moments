@@ -94,13 +94,11 @@ test('offline PDF-only and multiple attachment persistence, quota error retains 
   await page.goto(base + 'nina/');
   await expect(page.getByRole('button', { name: 'Save Moment', exact: true })).toBeEnabled();
   await context.setOffline(true);
-  await page
-    .locator('input[type=file][accept=".pdf,.docx,.txt"]')
-    .setInputFiles({
-      name: 'little-note.pdf',
-      mimeType: 'application/pdf',
-      buffer: Buffer.from('%PDF-1.4\nsmall private file'),
-    });
+  await page.locator('input[type=file][accept=".pdf,.docx,.txt"]').setInputFiles({
+    name: 'little-note.pdf',
+    mimeType: 'application/pdf',
+    buffer: Buffer.from('%PDF-1.4\nsmall private file'),
+  });
   await expect(page.locator('.file-caption').filter({ hasText: 'little-note.pdf' })).toBeVisible();
   await page.getByRole('button', { name: 'Save Moment', exact: true }).click();
   await expect(page.getByText('A moment in pictures and sound')).toBeVisible();
