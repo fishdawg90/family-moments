@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { ExploreMode } from './explore-data';
 
 type View = 'capture' | 'recent' | 'settings' | 'explore';
-export type AttachmentSource = 'photo' | 'video' | 'voice' | 'audio' | null;
+export type AttachmentSource = 'audio' | null;
 type Screen = {
   view: View;
   moment: string;

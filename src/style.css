@@ -246,21 +246,6 @@ small,
   height: 20px;
   stroke-width: 1.5;
 }
-.attachment-source {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  align-items: center;
-  padding: 0 12px 12px;
-}
-.attachment-source > button:not(.icon-button) {
-  flex: 1 1 120px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 7px;
-  font-size: 12px;
-}
 .event-date {
   padding: 0 17px 11px;
   color: #95897a;
@@ -857,9 +842,6 @@ small,
   border: 1px solid #e9e2d8;
   border-radius: 18px;
   overflow: hidden;
-}
-.capture-mode .attachment-content .attachment-source {
-  padding-top: 12px;
 }
 .capture-attachment-controls .attachment-tools {
   padding-bottom: 8px;

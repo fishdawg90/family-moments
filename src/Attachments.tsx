@@ -121,21 +121,21 @@ export function AttachmentPicker({
 }) {
   const image = useRef<HTMLInputElement>(null),
     video = useRef<HTMLInputElement>(null),
-    galleryImages = useRef<HTMLInputElement>(null),
-    galleryVideos = useRef<HTMLInputElement>(null),
-    voiceClips = useRef<HTMLInputElement>(null),
+    gallery = useRef<HTMLInputElement>(null),
     files = useRef<HTMLInputElement>(null);
   const latest = useRef(attachments);
   latest.current = attachments;
   const changeSource = useRef(setSource);
   changeSource.current = setSource;
   const [working, setWorking] = useState(false),
+    [requesting, setRequesting] = useState(false),
     [recording, setRecording] = useState(false),
     [seconds, setSeconds] = useState(0),
     [audio, setAudio] = useState<{ blob: Blob; url: string } | null>(null);
   const recorder = useRef<MediaRecorder | null>(null),
     stream = useRef<MediaStream | null>(null),
     mounted = useRef(true),
+    starting = useRef(false),
     audioUrl = useRef('');
   useEffect(() => {
     if (recording && source !== 'audio' && recorder.current?.state === 'recording')
@@ -148,6 +148,7 @@ export function AttachmentPicker({
       if (recorder.current?.state === 'recording') recorder.current.stop();
       stream.current?.getTracks().forEach((t) => t.stop());
       if (audioUrl.current) URL.revokeObjectURL(audioUrl.current);
+      onBusy(false);
     };
   }, []);
   useEffect(() => {
@@ -205,10 +206,14 @@ export function AttachmentPicker({
     />
   );
   const record = async () => {
+    if (starting.current) return;
+    starting.current = true;
+    setRequesting(true);
+    onBusy(true);
     try {
       if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder)
         throw new Error(
-          'Recording is unavailable here. Use Voice clip → Choose existing clip instead.',
+          'Recording is unavailable here. You can attach an existing audio file using Files.',
         );
       const media = await navigator.mediaDevices.getUserMedia({ audio: true });
       if (!mounted.current) {
@@ -255,51 +260,61 @@ export function AttachmentPicker({
       onBusy(true);
     } catch (e) {
       stream.current?.getTracks().forEach((t) => t.stop());
-      onError((e as Error).message);
+      if (mounted.current) {
+        onBusy(false);
+        onError((e as Error).message);
+      }
+    } finally {
+      starting.current = false;
+      if (mounted.current) setRequesting(false);
     }
   };
   const controls = (
     <div className="attachment-tools">
       <button
         type="button"
-        disabled={working || recording}
-        aria-expanded={source === 'photo'}
-        aria-controls="attachment-source"
-        onClick={() => setSource(source === 'photo' ? null : 'photo')}
+        disabled={working || recording || requesting}
+        onClick={() => image.current?.click()}
       >
         <Camera />
         <span>Photo</span>
       </button>
       <button
         type="button"
-        disabled={working || recording}
-        aria-expanded={source === 'video'}
-        aria-controls="attachment-source"
-        onClick={() => setSource(source === 'video' ? null : 'video')}
+        disabled={working || recording || requesting}
+        onClick={() => video.current?.click()}
       >
         <Video />
         <span>Video</span>
       </button>
       <button
         type="button"
-        disabled={working || !!audio}
-        aria-expanded={source === 'voice' || recording}
-        aria-controls="attachment-source"
+        disabled={working || recording || requesting}
+        onClick={() => gallery.current?.click()}
+      >
+        <Images />
+        <span>Gallery</span>
+      </button>
+      <button
+        type="button"
+        disabled={working || !!audio || requesting}
         onClick={() => {
           if (recording) recorder.current?.stop();
-          else setSource(source === 'voice' ? null : 'voice');
+          else void record();
         }}
       >
         {recording ? <Square /> : <Mic />}
         <span>
           {recording
             ? `Stop ${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
-            : 'Voice clip'}
+            : requesting
+              ? 'Microphone…'
+              : 'Voice clip'}
         </span>
       </button>
       <button
         type="button"
-        disabled={working || recording}
+        disabled={working || recording || requesting}
         onClick={() => {
           setSource(null);
           files.current?.click();
@@ -316,76 +331,9 @@ export function AttachmentPicker({
       aria-label="Attachments"
     >
       {controlsHost && createPortal(controls, controlsHost)}
-      {(source === 'photo' || source === 'video' || source === 'voice') && (
-        <div
-          id="attachment-source"
-          className="attachment-source"
-          role="group"
-          aria-label={
-            source === 'photo'
-              ? 'Add a photo'
-              : source === 'video'
-                ? 'Add a video'
-                : 'Add a voice clip'
-          }
-          onKeyDown={(e) => {
-            if (e.key === 'Escape') {
-              e.stopPropagation();
-              setSource(null);
-            }
-          }}
-        >
-          <button
-            type="button"
-            disabled={working || recording}
-            onClick={() => {
-              if (source === 'voice') void record();
-              else (source === 'photo' ? image : video).current?.click();
-            }}
-          >
-            {source === 'photo' ? (
-              <Camera size={18} />
-            ) : source === 'video' ? (
-              <Video size={18} />
-            ) : (
-              <Mic size={18} />
-            )}
-            {source === 'photo'
-              ? 'Take photo'
-              : source === 'video'
-                ? 'Record video'
-                : 'Record voice clip'}
-          </button>
-          <button
-            type="button"
-            disabled={working || recording}
-            onClick={() => {
-              (source === 'photo'
-                ? galleryImages
-                : source === 'video'
-                  ? galleryVideos
-                  : voiceClips
-              ).current?.click();
-            }}
-          >
-            {source === 'voice' ? <Paperclip size={18} /> : <Images size={18} />}
-            {source === 'voice' ? 'Choose existing clip' : 'Choose from gallery'}
-          </button>
-          <button
-            type="button"
-            className="icon-button"
-            aria-label="Close attachment choices"
-            onClick={() => setSource(null)}
-          >
-            <X size={18} />
-          </button>
-        </div>
-      )}
       {input(image, 'image/*', 'Take a new photo', 'environment')}
       {input(video, 'video/*', 'Record a new video', 'environment')}
-      {input(galleryImages, 'image/*', 'Choose photos from gallery')}
-      {input(galleryVideos, 'video/*', 'Choose videos from gallery')}
-      {input(voiceClips, 'audio/*', 'Choose voice clips')}
+      {input(gallery, 'image/*,video/*', 'Choose photos and videos from gallery')}
       {input(
         files,
         'image/jpeg,image/png,image/webp,video/mp4,video/webm,video/quicktime,audio/*,.pdf,.docx,.txt',

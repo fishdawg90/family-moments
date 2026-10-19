@@ -45,7 +45,6 @@ test('MediaRecorder audio and a generated WebM video remain playable after local
   await page.goto(base + 'me/');
   await expect(page.getByRole('button', { name: 'Save Moment', exact: true })).toBeEnabled();
   await page.getByRole('button', { name: 'Voice clip', exact: true }).click();
-  await page.getByRole('button', { name: 'Record voice clip', exact: true }).click();
   await expect(page.getByText(/Recording ·/)).toBeVisible();
   await page.waitForTimeout(1300);
   await page.getByRole('button', { name: /Stop 0:/ }).click();
@@ -72,9 +71,8 @@ test('MediaRecorder audio and a generated WebM video remain playable after local
     r.stop();
     return result;
   });
-  await page.getByRole('button', { name: 'Video', exact: true }).click();
   const videoChoice = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Choose from gallery', exact: true }).click();
+  await page.getByRole('button', { name: 'Gallery', exact: true }).click();
   await (
     await videoChoice
   ).setFiles({ name: 'tiny-clip.webm', mimeType: 'video/webm', buffer: Buffer.from(video) });
@@ -132,20 +130,16 @@ test('image-only capture optimises a real PNG and shows a durable thumbnail', as
   await page.goto(base + 'me/');
   await expect(page.getByRole('button', { name: 'Save Moment', exact: true })).toBeEnabled();
   await expect(page.getByRole('button', { name: 'Document', exact: true })).toHaveCount(0);
-  await page.getByRole('button', { name: 'Photo', exact: true }).click();
   const cameraChoice = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Take photo', exact: true }).click();
+  await page.getByRole('button', { name: 'Photo', exact: true }).click();
   const camera = await cameraChoice;
   expect(await camera.element().getAttribute('capture')).toBe('environment');
   await camera.setFiles([]);
-  await page.getByRole('button', { name: 'Close attachment choices' }).click();
-  await page.getByRole('button', { name: 'Video', exact: true }).click();
   const videoCaptureChoice = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Record video', exact: true }).click();
+  await page.getByRole('button', { name: 'Video', exact: true }).click();
   const videoCapture = await videoCaptureChoice;
   expect(await videoCapture.element().getAttribute('capture')).toBe('environment');
   await videoCapture.setFiles([]);
-  await page.getByRole('button', { name: 'Photo', exact: true }).click();
   const buffer = await page.evaluate(() => {
     const c = document.createElement('canvas');
     c.width = 64;
@@ -154,10 +148,11 @@ test('image-only capture optimises a real PNG and shows a durable thumbnail', as
     return c.toDataURL().split(',')[1];
   });
   const galleryChoice = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Choose from gallery', exact: true }).click();
+  await page.getByRole('button', { name: 'Gallery', exact: true }).click();
   const gallery = await galleryChoice;
   expect(await gallery.element().getAttribute('capture')).toBeNull();
-  expect(await gallery.element().getAttribute('accept')).toBe('image/*');
+  expect(await gallery.element().getAttribute('accept')).toBe('image/*,video/*');
+  await expect(page.locator('.attachment-source')).toHaveCount(0);
   expect(gallery.isMultiple()).toBe(true);
   await gallery.setFiles([
     { name: 'first.png', mimeType: 'image/png', buffer: Buffer.from(buffer, 'base64') },

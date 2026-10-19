@@ -34,6 +34,7 @@ test('capture stays at the top and Save stays at the visible bottom while suppor
     expect((await text.boundingBox())!.y).toBeCloseTo(top, 0);
     expect((await photo.boundingBox())!.y).toBeCloseTo(photoTop, 0);
     await expect(page.getByRole('button', { name: 'Video', exact: true })).toBeInViewport();
+    await expect(page.getByRole('button', { name: 'Gallery', exact: true })).toBeInViewport();
     await expect(page.getByRole('button', { name: 'Voice clip', exact: true })).toBeInViewport();
     await expect(page.getByRole('button', { name: 'Files', exact: true })).toBeInViewport();
     expect((await save.boundingBox())!.y).toBeCloseTo(button.y, 0);

@@ -1,13 +1,12 @@
 import { test, expect } from '@playwright/test';
 const base = 'http://127.0.0.1:5187/family-moments/giulia/';
 
-test('Back dismisses typing and attachment choices before leaving, without losing drafts or trapping navigation', async ({
+test('Back dismisses typing and direct gallery cancellation leaves no extra navigation steps', async ({
   page,
 }) => {
   await page.goto('about:blank');
   await page.goto(base);
   const text = page.getByLabel('What happened today?', { exact: true });
-  const photo = page.getByRole('button', { name: 'Photo', exact: true });
   await expect(text).toBeEnabled();
   await text.fill('Keep this unfinished thought');
   await page.goBack();
@@ -19,17 +18,12 @@ test('Back dismisses typing and attachment choices before leaving, without losin
   await page.goBack();
   await expect(text).not.toBeFocused();
   await text.focus();
-  await photo.click();
-  await expect(page.getByRole('group', { name: 'Add a photo', exact: true })).toBeVisible();
-  await page.goBack();
-  await expect(page.getByRole('group', { name: 'Add a photo', exact: true })).toHaveCount(0);
-  await expect(text).not.toBeFocused();
-  await photo.click();
   const picker = page.waitForEvent('filechooser');
-  await page.getByRole('button', { name: 'Choose from gallery' }).click();
+  await page.getByRole('button', { name: 'Gallery', exact: true }).click();
   await (await picker).setFiles([]);
-  await page.goBack();
-  await expect(photo).toHaveAttribute('aria-expanded', 'false');
+  await expect(text).not.toBeFocused();
+  await expect.poll(() => page.evaluate(() => history.state.screen.typing)).toBe(false);
+  await expect(page.locator('.attachment-source')).toHaveCount(0);
   await page.getByRole('combobox', { name: 'Find or add a tag' }).fill('firs');
   await page.goBack();
   await expect(page.getByRole('combobox', { name: 'Find or add a tag' })).toHaveValue('');
@@ -51,7 +45,6 @@ test('Back stops audio recording and keeps its preview available to attach', asy
   await page.goto(base);
   await expect(page.getByRole('button', { name: 'Save Moment', exact: true })).toBeEnabled();
   await page.getByRole('button', { name: 'Voice clip', exact: true }).click();
-  await page.getByRole('button', { name: 'Record voice clip', exact: true }).click();
   await expect(page.getByText(/Recording ·/)).toBeVisible();
   await page.waitForTimeout(300);
   await page.goBack();
