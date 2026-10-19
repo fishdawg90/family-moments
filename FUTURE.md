@@ -13,8 +13,8 @@
 
 ## Product enhancements
 
-- Month/year/all-time timelines, date/tag filters and full-text search.
-- Keep voice clips available in every future memory view: show a microphone/count indicator on compact cards and authenticated, on-demand playback on the expanded memory. Use the existing `attachments.kind = 'audio'` schema for both voice-only and mixed-media moments, without requiring text or transcription. Additional viewing modes still need their layouts defined; the current review mode is Recent Moments.
+- Dedicated month/year/all-time navigation, advanced date/tag filters and full-text search. Explore now includes a chronological Story River and tag-linked Night Sky, alongside Scrapbook, Listening Room and Lucky Dip; see [EXPLORE.md](EXPLORE.md).
+- Extend the five Explore styles based on family feedback. Keep voice-only and mixed-media moments accessible without requiring transcription or additional metadata.
 - On this day, optional ages and milestone calculations.
 - Child-specific memory books, photo/PDF albums and collages.
 - Optional audio transcription and suggestions only with a separate, explicit privacy decision.

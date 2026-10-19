@@ -17,9 +17,11 @@ The Firebase web SDK necessarily includes the supplied key in the browser bundle
 
 ## Owner handover
 
+Tap the compass in the app header to open five different memory views: Scrapbook, Night Sky, Story River, Listening Room and Lucky Dip. The optional fictional sample collection lets you try them immediately without saving test memories. See [EXPLORE.md](EXPLORE.md).
+
 Follow [SETUP.md](SETUP.md) for the remaining repository, billing, bucket, CORS and deployment steps. See [IMPLEMENTATION.md](IMPLEMENTATION.md) for verified evidence and limitations, [BACKUP.md](BACKUP.md) for recovery, and [ANDROID-CHECKLIST.md](ANDROID-CHECKLIST.md) before using this for irreplaceable memories.
 
-Planned production entrypoints (deployment has not yet been verified):
+Live production entrypoints:
 
 - https://fishdawg90.github.io/family-moments/giulia/
 - https://fishdawg90.github.io/family-moments/nina/

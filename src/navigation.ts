@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
+import type { ExploreMode } from './explore-data';
 
-type View = 'capture' | 'recent' | 'settings';
+type View = 'capture' | 'recent' | 'settings' | 'explore';
 export type AttachmentSource = 'photo' | 'video' | 'voice' | 'audio' | null;
 type Screen = {
   view: View;
@@ -9,6 +10,8 @@ type Screen = {
   source: AttachmentSource;
   typing: boolean;
   date: boolean;
+  exploreMode: ExploreMode | null;
+  samples: boolean;
 };
 const initial: Screen = {
   view: 'capture',
@@ -17,6 +20,8 @@ const initial: Screen = {
   source: null,
   typing: false,
   date: false,
+  exploreMode: null,
+  samples: false,
 };
 const editable = (element: Element | null): element is HTMLElement =>
   element instanceof HTMLElement &&

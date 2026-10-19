@@ -12,6 +12,7 @@ import {
   Check,
   ChevronRight,
   Cloud,
+  Compass,
   Flower2,
   Heart,
   Leaf,
@@ -66,6 +67,7 @@ import type { Draft, LocalMoment, Tag } from './types';
 import { syncAccount } from './sync';
 import { AttachmentPicker, MediaPreview } from './Attachments';
 import { TagPicker } from './TagPicker';
+import { Explore } from './Explore';
 import {
   backupInfo,
   downloadFile,
@@ -443,7 +445,14 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
     });
   };
   const navigate = (next: typeof view) => {
-    navigation.open({ view: next, moment: '', delete: '', source: null, date: false });
+    navigation.open({
+      view: next,
+      moment: '',
+      delete: '',
+      source: null,
+      date: false,
+      exploreMode: null,
+    });
   };
   const submit = async () => {
     if (saveGuard.current || attaching || !loaded) return;
@@ -744,13 +753,22 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
             <strong>{profile.name}</strong>
           </span>
         </a>
-        <button
-          className="icon-button"
-          aria-label="Settings and backups"
-          onClick={() => navigate('settings')}
-        >
-          <Settings size={21} />
-        </button>
+        <div className="header-actions">
+          <button
+            className="icon-button"
+            aria-label="Explore moments"
+            onClick={() => navigate('explore')}
+          >
+            <Compass size={22} />
+          </button>
+          <button
+            className="icon-button"
+            aria-label="Settings and backups"
+            onClick={() => navigate('settings')}
+          >
+            <Settings size={21} />
+          </button>
+        </div>
       </header>
       <main className={`workspace ${view === 'capture' ? 'capture-workspace' : ''}`}>
         <div className="status-line">
@@ -901,6 +919,36 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
               <small>Private to your family · saved on your phone first</small>
             </div>
           </>
+        )}
+        {view === 'explore' && (
+          <Explore
+            uid={uid}
+            profileId={profile.id}
+            profileName={profile.name}
+            moments={rows.map((r) => r.value)}
+            tags={tags}
+            mode={navigation.screen.exploreMode}
+            demo={navigation.screen.samples}
+            selectedId={opened}
+            onMode={(exploreMode) => {
+              navigation.open({ exploreMode, moment: '' });
+              window.scrollTo({ top: 0 });
+            }}
+            onDemo={(samples) => navigation.replace({ samples, moment: '' })}
+            onSelect={(moment) => {
+              navigation.open({ moment });
+              window.scrollTo({ top: 0 });
+            }}
+            onBack={navigation.back}
+            onEdit={(id) => {
+              const row = rows.find((r) => r.id === id);
+              if (row) void edit(row);
+            }}
+            more={more}
+            onMore={async () => {
+              await refreshCloud(true);
+            }}
+          />
         )}
         {view === 'recent' && (
           <>

@@ -2,6 +2,8 @@
 
 ## Built
 
+Explore adds a separate compass entry in the header and five distinct review experiences: Scrapbook, Night Sky, Story River, Listening Room and Lucky Dip. They reuse the current profile’s stored moments and private media handling. An isolated fictional sample collection lets the owner assess every style immediately. Current local checks pass: TypeScript, production build, 30 unit/persistence tests and 14 browser scenarios, including all five views, a 72-record collection, Back navigation, profile/deletion filtering and voice playback. See [EXPLORE.md](EXPLORE.md) for interactions, paging and sample boundaries.
+
 A functioning React/TypeScript/Vite PWA with three static profile entrypoints, separate manifests/icons and one isolated service worker. Capture goes directly to a warm mobile interface. Text, images, native video selection/capture, integrated audio recording and PDF/DOCX/TXT attachments persist locally before Save acknowledges success.
 
 Implemented IndexedDB drafts, account-partitioned moments/media, shared canonical tags, profile-specific derived usage ranking, recent date groups, on-demand private media playback/download, editing, recoverable deletion and durable delayed cleanup. Firebase SDK transactions provide revision conflicts and idempotent operation acknowledgements. Metadata is visible before all media finishes. Account-bound upload metadata adds a rules check against uploading an old account’s queue under a new account.
