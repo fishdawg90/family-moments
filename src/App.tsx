@@ -15,6 +15,7 @@ import {
   Flower2,
   Heart,
   Leaf,
+  Mic,
   Settings,
   Sun,
 } from 'lucide-react';
@@ -547,6 +548,7 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
       : sync;
   const renderMoment = (row: LocalMoment, index: number) => {
     const m = row.value,
+      voiceCount = m.attachments.filter((a) => a.kind === 'audio').length,
       full = opened === m.id,
       previous = visible[index - 1]?.value;
     return (
@@ -566,7 +568,18 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
             aria-expanded={full}
           >
             <time dateTime={m.eventAt}>{formatTime(m.eventAt)}</time>
-            <p>{m.text || 'A moment in pictures and sound'}</p>
+            <p>
+              {m.text ||
+                (m.attachments.length && m.attachments.every((a) => a.kind === 'audio')
+                  ? 'A voice to remember'
+                  : 'A moment in pictures and sound')}
+            </p>
+            {voiceCount > 0 && (
+              <span className="voice-badge">
+                <Mic size={14} aria-hidden="true" />
+                {voiceCount} voice clip{voiceCount === 1 ? '' : 's'}
+              </span>
+            )}
             <div className="moment-meta">
               <span>
                 {m.attachments.length

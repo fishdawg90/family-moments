@@ -44,7 +44,8 @@ test('MediaRecorder audio and a generated WebM video remain playable after local
   await context.grantPermissions(['microphone']);
   await page.goto(base + 'me/');
   await expect(page.getByRole('button', { name: 'Save Moment', exact: true })).toBeEnabled();
-  await page.getByRole('button', { name: 'Audio', exact: true }).click();
+  await page.getByRole('button', { name: 'Voice clip', exact: true }).click();
+  await page.getByRole('button', { name: 'Record voice clip', exact: true }).click();
   await expect(page.getByText(/Recording ·/)).toBeVisible();
   await page.waitForTimeout(1300);
   await page.getByRole('button', { name: /Stop 0:/ }).click();

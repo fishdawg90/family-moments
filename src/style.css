@@ -562,6 +562,14 @@ small,
   min-width: 0;
   margin-bottom: 10px;
 }
+.voice-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0 0 8px;
+  color: var(--accent);
+  font-size: 12px;
+}
 .media-preview img,
 .media-preview video {
   width: 100%;

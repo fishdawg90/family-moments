@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 
 type View = 'capture' | 'recent' | 'settings';
-export type AttachmentSource = 'photo' | 'video' | 'audio' | null;
+export type AttachmentSource = 'photo' | 'video' | 'voice' | 'audio' | null;
 type Screen = {
   view: View;
   moment: string;

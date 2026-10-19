@@ -14,6 +14,7 @@
 ## Product enhancements
 
 - Month/year/all-time timelines, date/tag filters and full-text search.
+- Keep voice clips available in every future memory view: show a microphone/count indicator on compact cards and authenticated, on-demand playback on the expanded memory. Use the existing `attachments.kind = 'audio'` schema for both voice-only and mixed-media moments, without requiring text or transcription. Additional viewing modes still need their layouts defined; the current review mode is Recent Moments.
 - On this day, optional ages and milestone calculations.
 - Child-specific memory books, photo/PDF albums and collages.
 - Optional audio transcription and suggestions only with a separate, explicit privacy decision.

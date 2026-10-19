@@ -50,7 +50,8 @@ test('Back stops audio recording and keeps its preview available to attach', asy
   await page.goto('about:blank');
   await page.goto(base);
   await expect(page.getByRole('button', { name: 'Save Moment', exact: true })).toBeEnabled();
-  await page.getByRole('button', { name: 'Audio', exact: true }).click();
+  await page.getByRole('button', { name: 'Voice clip', exact: true }).click();
+  await page.getByRole('button', { name: 'Record voice clip', exact: true }).click();
   await expect(page.getByText(/Recording ·/)).toBeVisible();
   await page.waitForTimeout(300);
   await page.goBack();
