@@ -2,6 +2,8 @@
 
 The local application and tests are prepared. No live Firebase rules, billing settings or existing app deployments were changed. There is no verified live Family Moments deployment yet.
 
+The owner has now created the GitHub repository and confirmed the existing bucket as `gs://la-spesa-5cc7a.firebasestorage.app`. This public bucket name is configured as the app default, so a GitHub Actions bucket variable is optional. Live rules, CORS and two-phone operation still need verification.
+
 ## 1. Create the GitHub repository
 
 Open [Create fishdawg90/family-moments](https://github.com/new?owner=fishdawg90&name=family-moments&description=Private%20offline-first%20family%20memories).
@@ -30,7 +32,7 @@ Create a budget with email alerts in [Google Cloud Billing budgets](https://cons
 
 Once the repository exists:
 
-1. In [repository Actions variables](https://github.com/fishdawg90/family-moments/settings/variables/actions), add `FIREBASE_STORAGE_BUCKET` with the exact bucket name, without `gs://`.
+1. The verified bucket is already configured in source. Optionally override it using `FIREBASE_STORAGE_BUCKET` in [repository Actions variables](https://github.com/fishdawg90/family-moments/settings/variables/actions), without `gs://`.
 2. In [Pages settings](https://github.com/fishdawg90/family-moments/settings/pages), choose **GitHub Actions** as the build/deployment source.
 3. Push the prepared source to `main` and inspect [Actions](https://github.com/fishdawg90/family-moments/actions). The workflow checks types, unit tests, security rules, actual SDK emulator interactions, production build and browser/PWA behaviour before deploying.
 

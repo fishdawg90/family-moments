@@ -8,8 +8,9 @@ export const FIREBASE_CONFIG = {
   projectId: 'la-spesa-5cc7a',
   appId: '1:767696505467:web:82873e463a2f93782bb0de',
 };
-// Deliberately unset until the owner verifies the actual existing/default bucket.
-export const STORAGE_BUCKET = import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || '';
+// Existing bucket verified by the owner in Firebase Storage. This is public configuration.
+export const STORAGE_BUCKET =
+  import.meta.env.VITE_FIREBASE_STORAGE_BUCKET || 'la-spesa-5cc7a.firebasestorage.app';
 export const profiles = profileDefinitions;
 export function profileFromPath(path: string) {
   return profiles.find((p) => path.split('/')[2] === p.id) || profiles[0];
