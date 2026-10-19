@@ -1,6 +1,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useRef,
   useState,
   type CSSProperties,
@@ -33,6 +34,7 @@ import {
   transport,
 } from './firebase';
 import { BASE, profileFromPath, profiles, TEST_MODE } from './config';
+import { createSyncRunner } from './sync-runner';
 import {
   formatDate,
   formatTime,
@@ -237,7 +239,6 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
     current = useRef(draft),
     cursor = useRef<QueryDocumentSnapshot | undefined>(undefined),
     refreshing = useRef(false),
-    syncing = useRef(false),
     saveGuard = useRef(false);
   const active = useCallback(
     () => alive.current && (TEST_MODE || auth.currentUser?.uid === uid),
@@ -308,13 +309,12 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
     },
     [uid, active, refreshLocal],
   );
-  const retry = useCallback(async () => {
+  const syncPass = useCallback(async () => {
     if (TEST_MODE) {
       setSync('Local browser test · cloud disabled');
       return;
     }
-    if (!navigator.onLine || !active() || syncing.current) return;
-    syncing.current = true;
+    if (!navigator.onLine || !active()) return;
     try {
       setSync('Connecting…');
       await syncAccount(uid, transport, active, (s) => {
@@ -322,8 +322,8 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
       });
       if (!active()) return;
       await refreshLocal();
-      const pending = (await listMoments(uid)).filter((r) => r.status !== 'synced');
       const verified = await refreshCloud();
+      const pending = (await listMoments(uid)).filter((r) => r.status !== 'synced');
       if (active())
         setSync(
           pending.some((r) => r.error || r.status === 'conflict')
@@ -339,10 +339,12 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
         setSync('Needs attention · retry');
         setError((e as Error).message);
       }
-    } finally {
-      syncing.current = false;
     }
   }, [uid, active, refreshLocal, refreshCloud]);
+  const retry = useMemo(
+    () => createSyncRunner(syncPass, () => navigator.onLine && active()),
+    [syncPass, active],
+  );
   useEffect(() => {
     alive.current = true;
     void (async () => {
@@ -443,6 +445,7 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
       current.current = blank;
       setDraft(blank);
       setNotice('Saved on this phone');
+      if (!TEST_MODE) setSync('Saved locally');
       setUndo(edited ? null : { id: sent.id, deleted: false });
       navigator.vibrate?.(18);
       await refreshLocal();
@@ -523,7 +526,11 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
     visible = rows
       .filter((r) => r.value.profileId === profile.id && !!r.value.deletedAt === showDeleted)
       .sort((a, b) => b.value.eventAt.localeCompare(a.value.eventAt));
-  const status = !online ? `Offline · ${pending.length} waiting` : sync;
+  const status = !online
+    ? `Offline · ${pending.length} waiting`
+    : pending.length && sync === 'Safely synced'
+      ? `${pending.length} saved locally`
+      : sync;
   const renderMoment = (row: LocalMoment, index: number) => {
     const m = row.value,
       full = opened === m.id,
