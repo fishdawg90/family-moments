@@ -183,5 +183,5 @@ test('profile URLs preserve independent drafts and stay within a narrow viewport
   await expect(page.getByLabel('What happened today?', { exact: true })).toHaveValue(
     'draft for giulia',
   );
-  await expect(page.getByRole('link', { name: "Giulia's Moments", exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: "Giulia's Moments", exact: true })).toBeVisible();
 });

@@ -10,6 +10,8 @@ import {
 import {
   ArrowLeft,
   Check,
+  CalendarDays,
+  ChevronDown,
   ChevronRight,
   Cloud,
   Compass,
@@ -221,6 +223,8 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
   const navigation = useAppNavigation();
   const { view, moment: opened, delete: deleteId, source: attachmentSource } = navigation.screen;
   const [attachmentControls, setAttachmentControls] = useState<HTMLDivElement | null>(null);
+  const [unattachedVoice, setUnattachedVoice] = useState(false);
+  const switchingProfile = useRef(false);
   const [draft, setDraft] = useState<Draft>(emptyDraft(uid, profile.id)),
     [loaded, setLoaded] = useState(false),
     [rows, setRows] = useState<LocalMoment[]>([]),
@@ -240,6 +244,8 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
   const [visibleCount, setVisibleCount] = useState(30);
   const shellRef = useRef<HTMLDivElement>(null);
   const captureScrollRef = useRef<HTMLDivElement>(null);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
+  const profileButtonRef = useRef<HTMLButtonElement>(null);
   const alive = useRef(true),
     writeChain = useRef(Promise.resolve()),
     current = useRef(draft),
@@ -452,8 +458,49 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
       source: null,
       date: false,
       exploreMode: null,
+      profiles: false,
     });
   };
+  const switchProfile = async (id: string) => {
+    if (id === profile.id) {
+      navigation.back();
+      return;
+    }
+    if (attaching || saving || unattachedVoice) {
+      setError(
+        unattachedVoice
+          ? 'Attach or discard your recorded voice clip before switching profiles.'
+          : 'Finish recording, attaching or saving before switching profiles.',
+      );
+      return;
+    }
+    if (switchingProfile.current) return;
+    switchingProfile.current = true;
+    let dispatched = false;
+    try {
+      await writeChain.current;
+      if (!active() || !history.state?.screen?.profiles) return;
+      // Remove the menu's history entry before changing pages. Returning to this
+      // profile then restores its draft without leaving a redundant Back step.
+      const changePage = () => location.assign(`${BASE}${id}/`);
+      window.addEventListener('popstate', changePage, { once: true });
+      dispatched = navigation.back();
+      if (!dispatched) window.removeEventListener('popstate', changePage);
+    } catch (e) {
+      setError(
+        `Could not save the current draft: ${(e as Error).message}. Stay on this page and try again.`,
+      );
+    } finally {
+      if (!dispatched) switchingProfile.current = false;
+    }
+  };
+  useEffect(() => {
+    if (!navigation.screen.profiles) return;
+    const frame = requestAnimationFrame(() =>
+      profileMenuRef.current?.querySelector<HTMLElement>('[aria-current="page"]')?.focus(),
+    );
+    return () => cancelAnimationFrame(frame);
+  }, [navigation.screen.profiles]);
   const submit = async () => {
     if (saveGuard.current || attaching || !loaded) return;
     saveGuard.current = true;
@@ -753,15 +800,95 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
   return (
     <div className={`workspace-shell ${view === 'capture' ? 'capture-mode' : ''}`} ref={shellRef}>
       <header className="topbar">
-        <a className="brand" href={`${BASE}${profile.id}/`} aria-label={profile.name}>
-          <span className="brand-mark">
-            <Icon size={25} />
-          </span>
-          <span>
-            <small>FAMILY MOMENTS</small>
-            <strong>{profile.name}</strong>
-          </span>
-        </a>
+        {navigation.screen.profiles && (
+          <button
+            className="profile-dismiss"
+            aria-label="Close profile chooser"
+            tabIndex={-1}
+            onClick={navigation.back}
+          />
+        )}
+        <div className={`profile-switcher ${navigation.screen.profiles ? 'is-open' : ''}`}>
+          <button
+            type="button"
+            className="brand"
+            aria-label={profile.name}
+            aria-haspopup="menu"
+            aria-expanded={navigation.screen.profiles}
+            aria-controls="profile-menu"
+            ref={profileButtonRef}
+            onClick={() =>
+              navigation.screen.profiles ? navigation.back() : navigation.open({ profiles: true })
+            }
+          >
+            <span className="brand-mark">
+              <Icon size={25} />
+            </span>
+            <span>
+              <small>FAMILY MOMENTS</small>
+              <strong>{profile.name}</strong>
+            </span>
+            <ChevronDown size={15} className="profile-chevron" aria-hidden="true" />
+          </button>
+          {navigation.screen.profiles && (
+            <div
+              className="profile-menu"
+              id="profile-menu"
+              role="menu"
+              aria-label="Memory pages"
+              ref={profileMenuRef}
+              onKeyDown={(e) => {
+                const links = Array.from(
+                  e.currentTarget.querySelectorAll<HTMLAnchorElement>('[role="menuitem"]'),
+                );
+                const index = links.indexOf(document.activeElement as HTMLAnchorElement);
+                if (['ArrowDown', 'ArrowUp', 'Home', 'End'].includes(e.key)) {
+                  e.preventDefault();
+                  const next =
+                    e.key === 'Home'
+                      ? 0
+                      : e.key === 'End'
+                        ? links.length - 1
+                        : (index + (e.key === 'ArrowDown' ? 1 : -1) + links.length) % links.length;
+                  links[next]?.focus();
+                }
+                if (e.key === 'Escape') {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  navigation.back();
+                  profileButtonRef.current?.focus();
+                }
+                if (e.key === 'Tab') navigation.back();
+              }}
+            >
+              {profiles.map((p) => {
+                const ProfileIcon = p.icon === 'flower' ? Flower2 : p.icon === 'sun' ? Sun : Leaf;
+                return (
+                  <a
+                    role="menuitem"
+                    key={p.id}
+                    href={`${BASE}${p.id}/`}
+                    aria-current={p.id === profile.id ? 'page' : undefined}
+                    onClick={(e) => {
+                      if (e.ctrlKey || e.metaKey || e.shiftKey || e.altKey) return;
+                      e.preventDefault();
+                      void switchProfile(p.id);
+                    }}
+                  >
+                    <span
+                      className="profile-swatch"
+                      style={{ background: p.tint, color: p.accent }}
+                    >
+                      <ProfileIcon size={19} />
+                    </span>
+                    <span>{p.name}</span>
+                    {p.id === profile.id && <Check size={15} aria-hidden="true" />}
+                  </a>
+                );
+              })}
+            </div>
+          )}
+        </div>
         <div className="header-actions">
           <button
             className="icon-button"
@@ -814,8 +941,6 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
                 aria-label="Attachments, tags and recent moments"
                 tabIndex={0}
               >
-                {notifications}
-                {statusLine}
                 <AttachmentPicker
                   controlsHost={attachmentControls}
                   source={attachmentSource}
@@ -830,39 +955,10 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
                   attachments={draft.attachments}
                   onChange={(attachments) => update({ attachments })}
                   onBusy={setAttaching}
+                  onVoicePreview={setUnattachedVoice}
                   onError={setError}
                 />
-                <details className="event-date" open={navigation.screen.date}>
-                  <summary
-                    onClick={(e) => {
-                      e.preventDefault();
-                      if (navigation.screen.date) navigation.back();
-                      else navigation.open({ date: true, source: null });
-                    }}
-                  >
-                    {draft.editingId ? 'Event date' : 'Happened another day?'}{' '}
-                    <span>
-                      {formatDate(draft.eventAt)} · {formatTime(draft.eventAt)}
-                    </span>
-                  </summary>
-                  <label>
-                    When it happened (London time)
-                    <input
-                      aria-label="Event date and time"
-                      type="datetime-local"
-                      value={londonInput(draft.eventAt)}
-                      onChange={(e) => {
-                        try {
-                          update({ eventAt: fromLondonInput(e.target.value) });
-                          setError('');
-                        } catch (error) {
-                          setError((error as Error).message);
-                        }
-                      }}
-                    />
-                  </label>
-                  <small>During autumn’s repeated hour, the earlier occurrence is used.</small>
-                </details>
+                {notifications}
                 <TagPicker
                   tags={tags}
                   moments={rows.map((r) => r.value)}
@@ -879,6 +975,60 @@ function Workspace({ uid, email }: { uid: string; email: string }) {
                     return tag;
                   }}
                 />
+                <section
+                  className={`event-date ${navigation.screen.date ? 'is-open' : ''}`}
+                  aria-label="Moment date"
+                >
+                  <button
+                    type="button"
+                    className="date-toggle"
+                    aria-expanded={navigation.screen.date}
+                    aria-controls="event-date-field"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      if (navigation.screen.date) navigation.dismiss();
+                      else navigation.open({ date: true, source: null });
+                    }}
+                  >
+                    <CalendarDays size={16} aria-hidden="true" />
+                    <span>{draft.editingId ? 'Event date' : 'Happened another day?'}</span>
+                    <span className="date-current">
+                      {formatDate(draft.eventAt)} · {formatTime(draft.eventAt)}
+                    </span>
+                    <ChevronDown size={14} className="date-chevron" aria-hidden="true" />
+                  </button>
+                  <div
+                    className="date-fields"
+                    id="event-date-field"
+                    aria-hidden={!navigation.screen.date}
+                    inert={!navigation.screen.date}
+                  >
+                    <div>
+                      <div className="date-fields-inner">
+                        <label>
+                          When it happened (London time)
+                          <input
+                            aria-label="Event date and time"
+                            type="datetime-local"
+                            value={londonInput(draft.eventAt)}
+                            onChange={(e) => {
+                              try {
+                                update({ eventAt: fromLondonInput(e.target.value) });
+                                setError('');
+                              } catch (error) {
+                                setError((error as Error).message);
+                              }
+                            }}
+                          />
+                        </label>
+                        <small>
+                          During autumn’s repeated hour, the earlier occurrence is used.
+                        </small>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+                {statusLine}
                 {draft.editingId && (
                   <button
                     className="text-button"

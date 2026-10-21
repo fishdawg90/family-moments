@@ -27,10 +27,10 @@ test('Back dismisses typing and direct gallery cancellation leaves no extra navi
   await page.getByRole('combobox', { name: 'Find or add a tag' }).fill('firs');
   await page.goBack();
   await expect(page.getByRole('combobox', { name: 'Find or add a tag' })).toHaveValue('');
-  await page.locator('.event-date summary').click();
-  await expect(page.locator('.event-date')).toHaveAttribute('open', '');
+  await page.locator('.date-toggle').click();
+  await expect(page.locator('.date-toggle')).toHaveAttribute('aria-expanded', 'true');
   await page.goBack();
-  await expect(page.locator('.event-date')).not.toHaveAttribute('open');
+  await expect(page.locator('.date-toggle')).toHaveAttribute('aria-expanded', 'false');
   await expect(text).toHaveValue('Keep this unfinished thought');
   await page.goBack();
   await expect(page).toHaveURL('about:blank');
@@ -51,6 +51,11 @@ test('Back stops audio recording and keeps its preview available to attach', asy
   await expect(page.getByText(/Recording ·/)).toHaveCount(0);
   await expect(page.getByRole('button', { name: 'Attach recording', exact: true })).toBeVisible();
   await expect(page).toHaveURL(base);
+  await page.getByRole('button', { name: "Giulia's Moments", exact: true }).click();
+  await page.getByRole('menuitem', { name: "Nina's Moments", exact: true }).click();
+  await expect(page.getByRole('alert')).toContainText('Attach or discard your recorded voice clip');
+  await expect(page).toHaveURL(base);
+  await page.getByRole('button', { name: 'Close profile chooser', exact: true }).click();
   await page.getByRole('button', { name: 'Attach recording', exact: true }).click();
   await expect(page.locator('.attachment-card audio')).toHaveCount(1);
   await page.getByRole('button', { name: 'Save Moment', exact: true }).click();

@@ -7,7 +7,15 @@ import { getMedia, rememberMedia } from './storage';
 import { prepareFile, MB } from './media';
 import { download } from './firebase';
 import { downloadFile } from './backup';
-export function MediaPreview({ uid, a }: { uid: string; a: Attachment }) {
+export function MediaPreview({
+  uid,
+  a,
+  compact = false,
+}: {
+  uid: string;
+  a: Attachment;
+  compact?: boolean;
+}) {
   const [url, setUrl] = useState(''),
     [error, setError] = useState(''),
     [loading, setLoading] = useState(false);
@@ -50,6 +58,30 @@ export function MediaPreview({ uid, a }: { uid: string; a: Attachment }) {
       setLoading(false);
     }
   };
+  if (compact && a.kind === 'image')
+    return (
+      <div className="media-preview capture-image-preview">
+        {url ? (
+          <img src={url} alt={a.name} loading="lazy" />
+        ) : (
+          <button
+            type="button"
+            className="thumbnail-load"
+            aria-label={`Load photo ${a.name}`}
+            disabled={!a.remote || loading}
+            onClick={() => void load()}
+          >
+            <Images size={23} />
+            <span>{loading ? 'Loading…' : a.remote ? 'Load photo' : 'Saved locally'}</span>
+          </button>
+        )}
+        {error && (
+          <p className="error" role="alert">
+            {error}
+          </p>
+        )}
+      </div>
+    );
   return (
     <div className="media-preview">
       {url && a.kind === 'image' && <img src={url} alt={a.name} loading="lazy" />}
@@ -108,6 +140,7 @@ export function AttachmentPicker({
   attachments,
   onChange,
   onBusy,
+  onVoicePreview,
   onError,
 }: {
   controlsHost: HTMLElement | null;
@@ -117,6 +150,7 @@ export function AttachmentPicker({
   attachments: Attachment[];
   onChange: (list: Attachment[]) => void;
   onBusy: (busy: boolean) => void;
+  onVoicePreview: (pending: boolean) => void;
   onError: (s: string) => void;
 }) {
   const image = useRef<HTMLInputElement>(null),
@@ -137,6 +171,10 @@ export function AttachmentPicker({
     mounted = useRef(true),
     starting = useRef(false),
     audioUrl = useRef('');
+  useEffect(() => {
+    onVoicePreview(!!audio);
+    return () => onVoicePreview(false);
+  }, [audio, onVoicePreview]);
   useEffect(() => {
     if (recording && source !== 'audio' && recorder.current?.state === 'recording')
       recorder.current.stop();
@@ -386,8 +424,11 @@ export function AttachmentPicker({
       {!!attachments.length && (
         <div className="attachments">
           {attachments.map((a) => (
-            <div className="attachment-card" key={a.id}>
-              <MediaPreview uid={uid} a={a} />
+            <div
+              className={`attachment-card ${a.kind === 'image' ? 'photo-tile' : 'file-tile'}`}
+              key={a.id}
+            >
+              <MediaPreview uid={uid} a={a} compact />
               <button
                 type="button"
                 className="remove"

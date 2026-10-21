@@ -42,26 +42,6 @@ export function TagPicker({
   };
   return (
     <section className="tags" aria-label="Tags">
-      <div className="section-label">
-        <span>A little context</span>
-        <small>optional</small>
-      </div>
-      <div className="chips">
-        {selected.map((key) => {
-          const t = tags.find((t) => t.id === key);
-          return (
-            <button
-              type="button"
-              className="chip selected"
-              aria-pressed="true"
-              key={key}
-              onClick={() => onChange(selected.filter((i) => i !== key))}
-            >
-              {t?.label || key} <span aria-hidden>×</span>
-            </button>
-          );
-        })}
-      </div>
       <input
         role="combobox"
         aria-label="Find or add a tag"
@@ -101,25 +81,52 @@ export function TagPicker({
           }
         }}
       />
+      <div className="chips tag-row" role="group" aria-label="Selected and frequent tags">
+        {selected.map((key) => (
+          <button
+            type="button"
+            className="chip selected"
+            aria-pressed="true"
+            key={key}
+            onClick={() => onChange(selected.filter((i) => i !== key))}
+          >
+            {tags.find((t) => t.id === key)?.label || key} <span aria-hidden>×</span>
+          </button>
+        ))}
+        {!clean &&
+          matches
+            .filter((t) => !selected.includes(t.id))
+            .map((t) => (
+              <button
+                type="button"
+                className="chip"
+                aria-pressed="false"
+                key={t.id}
+                onPointerDown={(e) => e.preventDefault()}
+                onClick={() => toggle(t)}
+              >
+                {t.label}
+              </button>
+            ))}
+      </div>
       <div
         id={id}
-        className={clean ? 'suggestions' : 'chips suggestions'}
-        role={clean ? 'listbox' : 'group'}
+        className="suggestions"
+        role="listbox"
+        hidden={!clean}
         aria-label="Suggested tags"
       >
-        {matches
-          .filter((t) => clean || !selected.includes(t.id))
-          .map((t) => {
+        {clean &&
+          matches.map((t) => {
             const index = matches.indexOf(t);
             return (
               <button
                 type="button"
                 key={t.id}
                 id={`${id}-${index}`}
-                className={clean ? 'suggestion' : 'chip'}
-                role={clean ? 'option' : undefined}
-                aria-selected={clean ? selected.includes(t.id) || active === index : undefined}
-                aria-pressed={!clean ? selected.includes(t.id) : undefined}
+                className="suggestion"
+                role="option"
+                aria-selected={selected.includes(t.id) || active === index}
                 onPointerDown={(e) => e.preventDefault()}
                 onClick={() => toggle(t)}
               >

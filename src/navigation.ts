@@ -12,6 +12,7 @@ type Screen = {
   date: boolean;
   exploreMode: ExploreMode | null;
   samples: boolean;
+  profiles: boolean;
 };
 const initial: Screen = {
   view: 'capture',
@@ -22,6 +23,7 @@ const initial: Screen = {
   date: false,
   exploreMode: null,
   samples: false,
+  profiles: false,
 };
 const editable = (element: Element | null): element is HTMLElement =>
   element instanceof HTMLElement &&
@@ -71,11 +73,19 @@ export function useAppNavigation() {
     if (depth.current > 0 && !traversing.current) {
       traversing.current = true;
       history.back();
+      return true;
     }
+    return false;
   };
   const capture = () => {
     if (depth.current > 0) history.go(-depth.current);
     else replace(initial);
+  };
+  const dismiss = () => {
+    if (current.current.typing && depth.current > 1 && !traversing.current) {
+      traversing.current = true;
+      history.go(-2);
+    } else back();
   };
   useEffect(() => {
     const restoration = history.scrollRestoration;
@@ -106,7 +116,13 @@ export function useAppNavigation() {
       const s = current.current;
       if (
         event.key === 'Escape' &&
-        (s.typing || s.source || s.date || s.delete || s.moment || s.view !== 'capture')
+        (s.typing ||
+          s.source ||
+          s.date ||
+          s.profiles ||
+          s.delete ||
+          s.moment ||
+          s.view !== 'capture')
       ) {
         event.preventDefault();
         back();
@@ -125,5 +141,5 @@ export function useAppNavigation() {
       document.removeEventListener('keydown', escape);
     };
   }, []);
-  return { screen, open, replace, back, capture };
+  return { screen, open, replace, back, capture, dismiss };
 }

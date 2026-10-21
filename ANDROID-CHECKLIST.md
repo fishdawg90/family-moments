@@ -3,6 +3,10 @@
 These tests require the two actual phones and deployed live configuration. Desktop Chromium results do not count as completion of this checklist.
 
 - [ ] Open all three URLs directly and refresh each. Confirm its profile name and accent.
+- [ ] Tap the profile title to open its dropdown on capture, Recent and Explore. Switch between Giulia, Nina and My Moments; verify each unfinished draft survives. Test outside tap, Back, Escape and keyboard arrows. An unattached voice recording should block switching until attached/discarded.
+- [ ] Confirm tag search has one horizontally scrollable row of selected/frequent tags, with no context heading. Search/create/select/remove tags by touch and keyboard.
+- [ ] Tap the date pill and verify its rounded surface expands into the date editor. Change the date, collapse and reopen it, and test Back with the keyboard focused. Enable reduced motion and verify the field still works without animation.
+- [ ] Attach several photos: confirm compact thumbnails appear directly beneath the capture buttons, in two columns on narrow phones or three on wider phones. Remove one, reload, and save the remaining photos. Capture thumbnails have no filename/download controls; full saved-memory review still supports downloads.
 - [ ] Install/add each profile from its own URL. Launch Giulia, Nina, My Moments, then Giulia again. Confirm no shortcut takes on the last-used profile.
 - [ ] After shell caching and an online sign-in, enable airplane mode, close Chrome/PWA, launch every shortcut and verify capture loads.
 - [ ] Save text offline, force-close/reopen, and find the pending record and unfinished draft.
